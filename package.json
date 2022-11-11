@@ -1,5 +1,5 @@
 {
-  "name": "moonlotto-dashboard",
+  "name": "localassets-dashboard",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -13,7 +13,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@metamask/detect-provider": "^1.2.0",
     "@polkadot/api": "^9.7.1",
     "@polkadot/util": "^10.1.11",
     "async": "^3.2.3",
@@ -21,8 +20,8 @@
     "isomorphic-fetch": "^3.0.0",
     "next": "^10.0.8",
     "next-routes": "^1.4.2",
-    "react": "^17.0.1",
-    "react-dom": "^17.0.1",
+    "react": "^16.14.0",
+    "react-dom": "^16.14.0",
     "semantic-ui-react": "^2.0.3"
   }
 }
