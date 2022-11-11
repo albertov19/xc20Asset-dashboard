@@ -146,7 +146,7 @@ const assetInfoComponent = ({ network }) => {
             <Table>
               <Header>
                 <Row>
-                  <HeaderCell>Asset #</HeaderCell>
+                  <HeaderCell>#</HeaderCell>
                   <HeaderCell>Asset Name</HeaderCell>
                   <HeaderCell>Symbol</HeaderCell>
                   <HeaderCell>XC-20 Address</HeaderCell>
