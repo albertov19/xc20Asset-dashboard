@@ -34,6 +34,7 @@ const assetInfoComponent = ({ network }) => {
         console.log(assetsData[i]);
         const metadata = await api.query.localAssets.metadata(assetsData[i].assetID.toString());
         assetsData[i].name = metadata.name.toHuman().toString();
+        assetsData[i].decimals = metadata.decimals.toHuman().toString();
         assetsData[i].metadata = metadata;
       }
 
@@ -54,6 +55,7 @@ const assetInfoComponent = ({ network }) => {
             <Cell>{index}</Cell>
             <Cell>{asset.name}</Cell>
             <Cell>{address}</Cell>
+            <Cell>{asset.decimals}</Cell>
             <Cell>{asset.assetID.toString()}</Cell>
           </Row>
         );
@@ -76,6 +78,7 @@ const assetInfoComponent = ({ network }) => {
                   <HeaderCell>Asset #</HeaderCell>
                   <HeaderCell>Asset Name</HeaderCell>
                   <HeaderCell>XC-20 Address</HeaderCell>
+                  <HeaderCell>Decimals</HeaderCell>
                   <HeaderCell>Asset ID</HeaderCell>
                 </Row>
               </Header>
