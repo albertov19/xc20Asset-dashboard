@@ -9,8 +9,8 @@ const assetInfoComponent = ({ network }) => {
   const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
-  useEffect(async () => {
-    await loadAllData();
+  useEffect(() => {
+    loadAllData();
   }, [network]);
 
   const loadAllData = async () => {
