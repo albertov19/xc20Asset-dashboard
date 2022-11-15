@@ -5,18 +5,24 @@ import { subProvider } from "../web3/api";
 import { bnToHex } from "@polkadot/util";
 
 const assetInfoComponent = ({ network }) => {
-  const [assets, setAssets] = useState(Array());
-  const [assetsDropdown, setAssetsDropdown] = useState(Array());
-  const [focusAsset, setFocusAsset] = useState("");
+  const [localAssets, setLocalAssets] = useState(Array());
+  const [externalAssets, setExternalAssets] = useState(Array());
+  const [localAssetsDropdown, setLocalAssetsDropdown] = useState(Array());
+  const [externalAssetsDropdown, setExternalAssetsDropdown] = useState(Array());
+  const [focusLocalAsset, setFocusLocalAsset] = useState("");
+  const [focusExternalAsset, setFocusExternalAsset] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    setFocusAsset("");
-    loadAllData();
+    setFocusLocalAsset("");
+    setFocusExternalAsset("");
+    loadAllData('assets');
+    loadAllData('localAssets');
+
   }, [network]);
 
-  const loadAllData = async () => {
+  const loadAllData = async (pallet) => {
     setLoading(true);
     setErrorMessage("");
 
@@ -27,7 +33,7 @@ const assetInfoComponent = ({ network }) => {
       // Load Provider
       const api = await subProvider(network);
 
-      const data = await api.query.localAssets.asset.entries();
+      const data = await api.query[pallet].asset.entries();
       data.forEach(async ([key, exposure]) => {
         assetsData.push({
           assetID: BigInt(key.args.map((k) => k.toHuman())[0].replaceAll(",", "")),
@@ -36,7 +42,7 @@ const assetInfoComponent = ({ network }) => {
       });
 
       for (let i = 0; i < assetsData.length; i++) {
-        const metadata = await api.query.localAssets.metadata(assetsData[i].assetID.toString());
+        const metadata = await api.query[pallet].metadata(assetsData[i].assetID.toString());
         assetsData[i].address = ethers.utils.getAddress(
           "fffffffe" + bnToHex(assetsData[i].assetID).slice(2)
         );
@@ -51,17 +57,39 @@ const assetInfoComponent = ({ network }) => {
         });
       }
 
-      setAssets(assetsData);
-      setAssetsDropdown(assetsDataDropdown);
+      switch (pallet){
+        case 'localAssets':
+            setLocalAssets(assetsData);
+            setLocalAssetsDropdown(assetsDataDropdown);
+            break;
+          case 'assets':
+            setExternalAssets(assetsData);
+            setExternalAssetsDropdown(assetsDataDropdown);
+            break;
+          default:
+            throw new Error('Option not allowed!');
+      }
+      
       setLoading(false);
     } catch (err) {
       setErrorMessage(err.message);
     }
   };
-  const renderAssets = () => {
+  const renderAssets = (assetType) => {
     const { Row, Cell } = Table;
-    if (assets.length !== 0) {
-      return assets.map((asset, index) => {
+    let assetData;
+    switch (assetType) {
+      case 'local':
+        assetData = localAssets;
+        break;
+      case 'external':
+        assetData = externalAssets;
+        break;
+      default:
+        console.error('Option not allowed!');
+    }
+    if (assetData.length !== 0) {
+      return assetData.map((asset, index) => {
         return (
           <Row key={index}>
             <Cell>{index}</Cell>
@@ -76,21 +104,37 @@ const assetInfoComponent = ({ network }) => {
     }
   };
 
-  const handleChange = (e, { value }) => {
-    console.log(value);
-    setFocusAsset(value);
+  const handleLocalChange = (e, { value }) => {
+    setFocusLocalAsset(value);
   };
 
-  const renderAsset = () => {
+  const handleExternalChange = (e, { value }) => {
+    setFocusExternalAsset(value);
+  };
+
+  const renderAsset = (assetType) => {
     const { Row, Cell } = Table;
     let focussedAsset;
-    if (focusAsset.length !== 0) {
-      assets.forEach((asset) => {
-        if (asset.assetID === focusAsset) {
+    let assetData;
+    let assetToSearch;
+    switch (assetType) {
+      case 'local':
+        assetData = localAssets;
+        assetToSearch = focusLocalAsset;
+        break;
+      case 'external':
+        assetData = externalAssets;
+        assetToSearch = focusExternalAsset;
+        break;
+      default:
+        console.error('Option not allowed!');
+    }
+    if (assetToSearch.length !== 0) {
+      assetData.forEach((asset) => {
+        if (asset.assetID === assetToSearch) {
           focussedAsset = asset;
         }
       });
-      console.log(focussedAsset);
       return (
         <div>
           <Row>
@@ -139,6 +183,26 @@ const assetInfoComponent = ({ network }) => {
   return (
     <div>
       <Form error={!!{ errorMessage }.errorMessage}>
+        <h2>External XC-20s</h2>
+        {loading === true && <Loader active inline="centered" content="Loading" />}
+        {loading === false && (
+          <Container>
+            <Table>
+              <Header>
+                <Row>
+                  <HeaderCell>#</HeaderCell>
+                  <HeaderCell>Asset Name</HeaderCell>
+                  <HeaderCell>Symbol</HeaderCell>
+                  <HeaderCell>XC-20 Address</HeaderCell>
+                  <HeaderCell>Decimals</HeaderCell>
+                  <HeaderCell>Asset ID</HeaderCell>
+                </Row>
+              </Header>
+              <Body>{renderAssets('external')}</Body>
+            </Table>
+          </Container>
+        )}
+        <h2> Local XC-20s</h2>
         <br />
         {loading === true && <Loader active inline="centered" content="Loading" />}
         {loading === false && (
@@ -154,26 +218,41 @@ const assetInfoComponent = ({ network }) => {
                   <HeaderCell>Asset ID</HeaderCell>
                 </Row>
               </Header>
-              <Body>{renderAssets()}</Body>
+              <Body>{renderAssets('local')}</Body>
             </Table>
           </Container>
         )}
         <br />
-        <h3> Local Asset Info</h3>
         <Grid>
-          <Grid.Column width={8}>
+        <Grid.Column width={8}>
+        <h3> External Asset Info</h3>
             <Dropdown
-              placeholder="Select Asset"
+              placeholder="Select External Asset"
               selection
-              options={assetsDropdown}
-              onChange={handleChange}
+              options={externalAssetsDropdown}
+              onChange={handleExternalChange}
             />
             <br />
             <br />
-
             <Container>
               <Table definition>
-                <Body>{renderAsset()}</Body>
+                <Body>{renderAsset('external')}</Body>
+              </Table>
+            </Container>
+          </Grid.Column>
+          <Grid.Column width={8}>
+        <h3> Local Asset Info</h3>
+            <Dropdown
+              placeholder="Select Local Asset"
+              selection
+              options={localAssetsDropdown}
+              onChange={handleLocalChange}
+            />
+            <br />
+            <br />
+            <Container>
+              <Table definition>
+                <Body>{renderAsset('local')}</Body>
               </Table>
             </Container>
           </Grid.Column>

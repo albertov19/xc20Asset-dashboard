@@ -74,6 +74,7 @@ const MintalbeXC20Dashboard = () => {
         code &nbsp;
         <a href="https://github.com/albertov19/localAsset-dashboard">here</a>
       </p>
+      <br />
     </Container>
   );
 };
