@@ -17,9 +17,8 @@ const assetInfoComponent = ({ network }) => {
   useEffect(() => {
     setFocusLocalAsset("");
     setFocusExternalAsset("");
-    loadAllData('assets');
-    loadAllData('localAssets');
-
+    loadAllData("assets");
+    loadAllData("localAssets");
   }, [network]);
 
   const loadAllData = async (pallet) => {
@@ -42,6 +41,17 @@ const assetInfoComponent = ({ network }) => {
       });
 
       for (let i = 0; i < assetsData.length; i++) {
+        if (pallet === "assets") {
+          const multilocation = (
+            await api.query.assetManager.assetIdType(assetsData[i].assetID.toString())
+          ).toHuman();
+          const key = Object.keys(multilocation.Xcm.interior)[0];
+          assetsData[i].paraID = multilocation.Xcm.interior[key].Parachain
+            ? multilocation.Xcm.interior[key].Parachain
+            : multilocation.Xcm.interior[key][0].Parachain
+            ? multilocation.Xcm.interior[key][0].Parachain
+            : "Relay";
+        }
         const metadata = await api.query[pallet].metadata(assetsData[i].assetID.toString());
         assetsData[i].address = ethers.utils.getAddress(
           "fffffffe" + bnToHex(assetsData[i].assetID).slice(2)
@@ -57,36 +67,37 @@ const assetInfoComponent = ({ network }) => {
         });
       }
 
-      switch (pallet){
-        case 'localAssets':
-            setLocalAssets(assetsData);
-            setLocalAssetsDropdown(assetsDataDropdown);
-            break;
-          case 'assets':
-            setExternalAssets(assetsData);
-            setExternalAssetsDropdown(assetsDataDropdown);
-            break;
-          default:
-            throw new Error('Option not allowed!');
+      switch (pallet) {
+        case "localAssets":
+          setLocalAssets(assetsData);
+          setLocalAssetsDropdown(assetsDataDropdown);
+          break;
+        case "assets":
+          setExternalAssets(assetsData);
+          setExternalAssetsDropdown(assetsDataDropdown);
+          break;
+        default:
+          throw new Error("Option not allowed!");
       }
-      
+
       setLoading(false);
     } catch (err) {
       setErrorMessage(err.message);
     }
   };
+
   const renderAssets = (assetType) => {
     const { Row, Cell } = Table;
     let assetData;
     switch (assetType) {
-      case 'local':
+      case "local":
         assetData = localAssets;
         break;
-      case 'external':
+      case "external":
         assetData = externalAssets;
         break;
       default:
-        console.error('Option not allowed!');
+        console.error("Option not allowed!");
     }
     if (assetData.length !== 0) {
       return assetData.map((asset, index) => {
@@ -98,6 +109,7 @@ const assetInfoComponent = ({ network }) => {
             <Cell>{asset.address}</Cell>
             <Cell>{asset.decimals}</Cell>
             <Cell>{asset.assetID.toString()}</Cell>
+            {assetType === "external" && <Cell>{asset.paraID}</Cell>}
           </Row>
         );
       });
@@ -118,16 +130,16 @@ const assetInfoComponent = ({ network }) => {
     let assetData;
     let assetToSearch;
     switch (assetType) {
-      case 'local':
+      case "local":
         assetData = localAssets;
         assetToSearch = focusLocalAsset;
         break;
-      case 'external':
+      case "external":
         assetData = externalAssets;
         assetToSearch = focusExternalAsset;
         break;
       default:
-        console.error('Option not allowed!');
+        console.error("Option not allowed!");
     }
     if (assetToSearch.length !== 0) {
       assetData.forEach((asset) => {
@@ -191,7 +203,7 @@ const assetInfoComponent = ({ network }) => {
         {loading === true && <Loader active inline="centered" content="Loading" />}
         {loading === false && (
           <Container>
-            <Table>
+            <Table singleLine>
               <Header>
                 <Row>
                   <HeaderCell>#</HeaderCell>
@@ -200,9 +212,10 @@ const assetInfoComponent = ({ network }) => {
                   <HeaderCell>XC-20 Address</HeaderCell>
                   <HeaderCell>Decimals</HeaderCell>
                   <HeaderCell>Asset ID</HeaderCell>
+                  <HeaderCell>Para-ID</HeaderCell>
                 </Row>
               </Header>
-              <Body>{renderAssets('external')}</Body>
+              <Body>{renderAssets("external")}</Body>
             </Table>
           </Container>
         )}
@@ -211,7 +224,7 @@ const assetInfoComponent = ({ network }) => {
         {loading === true && <Loader active inline="centered" content="Loading" />}
         {loading === false && (
           <Container>
-            <Table>
+            <Table singleLine>
               <Header>
                 <Row>
                   <HeaderCell>#</HeaderCell>
@@ -222,14 +235,14 @@ const assetInfoComponent = ({ network }) => {
                   <HeaderCell>Asset ID</HeaderCell>
                 </Row>
               </Header>
-              <Body>{renderAssets('local')}</Body>
+              <Body>{renderAssets("local")}</Body>
             </Table>
           </Container>
         )}
         <br />
         <Grid>
-        <Grid.Column width={8}>
-        <h3> External Asset Info</h3>
+          <Grid.Column width={8}>
+            <h3> External Asset Info</h3>
             <Dropdown
               placeholder="Select External Asset"
               selection
@@ -239,13 +252,13 @@ const assetInfoComponent = ({ network }) => {
             <br />
             <br />
             <Container>
-              <Table definition>
-                <Body>{renderAsset('external')}</Body>
+              <Table definition singleLine>
+                <Body>{renderAsset("external")}</Body>
               </Table>
             </Container>
           </Grid.Column>
           <Grid.Column width={8}>
-        <h3> Local Asset Info</h3>
+            <h3> Local Asset Info</h3>
             <Dropdown
               placeholder="Select Local Asset"
               selection
@@ -255,8 +268,8 @@ const assetInfoComponent = ({ network }) => {
             <br />
             <br />
             <Container>
-              <Table definition>
-                <Body>{renderAsset('local')}</Body>
+              <Table definition singleLine>
+                <Body>{renderAsset("local")}</Body>
               </Table>
             </Container>
           </Grid.Column>
