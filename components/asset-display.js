@@ -170,6 +170,10 @@ const assetInfoComponent = ({ network }) => {
             <Cell>{focussedAsset.assetInfo.toHuman().accounts}</Cell>
           </Row>
           <Row>
+            <Cell>Sufficients</Cell>
+            <Cell>{focussedAsset.assetInfo.toHuman().sufficients}</Cell>
+          </Row>
+          <Row>
             <Cell>Approvals</Cell>
             <Cell>{focussedAsset.assetInfo.toHuman().approvals}</Cell>
           </Row>
