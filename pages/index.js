@@ -45,7 +45,7 @@ const MintalbeXC20Dashboard = () => {
   return (
     <Container>
       <Head>
-        <title>Mintable XC-20s Dashboard</title>
+        <title>XC-20s Dashboard</title>
         <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
         <link
           rel="stylesheet"
