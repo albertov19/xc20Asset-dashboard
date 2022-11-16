@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Container, Menu, Dropdown, MenuItem } from "semantic-ui-react";
 import Head from "next/head";
 
@@ -28,15 +28,6 @@ const Networks = [
 
 const MintalbeXC20Dashboard = () => {
   const [network, setNetwork] = useState("moonbeam");
-  const [networkName, setNetworkName] = useState("Moonbeam");
-
-  useEffect(() => {
-    let networkName = network;
-    if (network === "moonbase") {
-      networkName = network + " Alpha";
-    }
-    setNetworkName(networkName[0].toUpperCase() + networkName.slice(1));
-  }, [network]);
 
   const handleChange = (e, { value }) => {
     setNetwork(value);
@@ -55,7 +46,7 @@ const MintalbeXC20Dashboard = () => {
       <div style={{ paddingTop: "10px" }}></div>
       <Menu>
         <Link route="/">
-          <a className="item">Mintable XC-20s Dashboard</a>
+          <a className="item">XC-20s Dashboard</a>
         </Link>
         <Menu.Item position="right">
           <Dropdown

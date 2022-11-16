@@ -3,6 +3,7 @@ import { Form, Container, Message, Table, Loader, Dropdown, Grid } from "semanti
 import * as ethers from "ethers";
 import { subProvider } from "../web3/api";
 import { bnToHex } from "@polkadot/util";
+import _ from "underscore";
 
 const assetInfoComponent = ({ network }) => {
   const [localAssets, setLocalAssets] = useState(Array());
@@ -15,6 +16,10 @@ const assetInfoComponent = ({ network }) => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    setLocalAssets(Array());
+    setExternalAssets(Array());
+    setLocalAssetsDropdown(Array());
+    setExternalAssetsDropdown(Array());
     setFocusLocalAsset("");
     setFocusExternalAsset("");
     loadAllData("assets");
@@ -41,18 +46,33 @@ const assetInfoComponent = ({ network }) => {
       });
 
       for (let i = 0; i < assetsData.length; i++) {
+        let metadata;
+        let multilocation;
         if (pallet === "assets") {
-          const multilocation = (
-            await api.query.assetManager.assetIdType(assetsData[i].assetID.toString())
-          ).toHuman();
+          // Load asycnhronously all data
+          const dataPromise = Promise.all([
+            api.query.assetManager.assetIdType(assetsData[i].assetID.toString()),
+            api.query[pallet].metadata(assetsData[i].assetID.toString()),
+          ]);
+
+          [multilocation, metadata] = await dataPromise;
+          multilocation = multilocation.toHuman();
+
           const key = Object.keys(multilocation.Xcm.interior)[0];
           assetsData[i].paraID = multilocation.Xcm.interior[key].Parachain
-            ? multilocation.Xcm.interior[key].Parachain
+            ? Number(multilocation.Xcm.interior[key].Parachain.replaceAll(",", ""))
             : multilocation.Xcm.interior[key][0].Parachain
-            ? multilocation.Xcm.interior[key][0].Parachain
+            ? Number(multilocation.Xcm.interior[key][0].Parachain.replaceAll(",", ""))
             : "Relay";
+        } else {
+          // Load asycnhronously all data
+          const dataPromise = Promise.all([
+            api.query[pallet].metadata(assetsData[i].assetID.toString()),
+          ]);
+
+          [metadata] = await dataPromise;
         }
-        const metadata = await api.query[pallet].metadata(assetsData[i].assetID.toString());
+
         assetsData[i].address = ethers.utils.getAddress(
           "fffffffe" + bnToHex(assetsData[i].assetID).slice(2)
         );
@@ -61,19 +81,22 @@ const assetInfoComponent = ({ network }) => {
         assetsData[i].symbol = metadata.symbol.toHuman().toString();
         assetsData[i].metadata = metadata;
         assetsDataDropdown.push({
-          key: assetsData[i].assetID,
+          key: assetsData[i].assetID.toString(),
           text: assetsData[i].name + " - " + assetsData[i].address,
-          value: assetsData[i].assetID,
+          value: assetsData[i].assetID.toString(),
         });
       }
 
+      let sortedAssets = _.sortBy(assetsData, "paraID");
+      sortedAssets.unshift(sortedAssets.pop());
+
       switch (pallet) {
         case "localAssets":
-          setLocalAssets(assetsData);
+          setLocalAssets(sortedAssets);
           setLocalAssetsDropdown(assetsDataDropdown);
           break;
         case "assets":
-          setExternalAssets(assetsData);
+          setExternalAssets(sortedAssets);
           setExternalAssetsDropdown(assetsDataDropdown);
           break;
         default:
@@ -99,7 +122,7 @@ const assetInfoComponent = ({ network }) => {
       default:
         console.error("Option not allowed!");
     }
-    if (assetData.length !== 0) {
+    if (assetData.length !== 0 && assetData[0]) {
       return assetData.map((asset, index) => {
         return (
           <Row key={index}>
@@ -143,12 +166,12 @@ const assetInfoComponent = ({ network }) => {
     }
     if (assetToSearch.length !== 0) {
       assetData.forEach((asset) => {
-        if (asset.assetID === assetToSearch) {
+        if (asset.assetID.toString() === assetToSearch) {
           focussedAsset = asset;
         }
       });
       return (
-        <div>
+        <Body>
           <Row>
             <Cell>Owner</Cell>
             <Cell>{focussedAsset.assetInfo.toHuman().owner}</Cell>
@@ -189,7 +212,7 @@ const assetInfoComponent = ({ network }) => {
             <Cell>Approvals</Cell>
             <Cell>{focussedAsset.assetInfo.toHuman().approvals}</Cell>
           </Row>
-        </div>
+        </Body>
       );
     }
   };
@@ -248,12 +271,13 @@ const assetInfoComponent = ({ network }) => {
               selection
               options={externalAssetsDropdown}
               onChange={handleExternalChange}
+              value={focusExternalAsset || ""}
             />
             <br />
             <br />
             <Container>
               <Table definition singleLine>
-                <Body>{renderAsset("external")}</Body>
+                {renderAsset("external")}
               </Table>
             </Container>
           </Grid.Column>
@@ -264,12 +288,13 @@ const assetInfoComponent = ({ network }) => {
               selection
               options={localAssetsDropdown}
               onChange={handleLocalChange}
+              value={focusLocalAsset || ""}
             />
             <br />
             <br />
             <Container>
               <Table definition singleLine>
-                <Body>{renderAsset("local")}</Body>
+                {renderAsset("local")}
               </Table>
             </Container>
           </Grid.Column>
