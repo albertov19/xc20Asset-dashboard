@@ -189,8 +189,15 @@ const assetInfoComponent = ({ network }) => {
             <Cell>{focussedAsset.assetInfo.toHuman().freezer}</Cell>
           </Row>
           <Row>
+            <Cell>Supply (raw)</Cell>
+            <Cell>{`${focussedAsset.assetInfo.toHuman().supply} `}</Cell>
+          </Row>
+          <Row>
             <Cell>Supply</Cell>
-            <Cell>{focussedAsset.assetInfo.toHuman().supply}</Cell>
+            <Cell>{`${
+              focussedAsset.assetInfo.toHuman().supply.replaceAll(",", "") /
+              Math.pow(10, focussedAsset.decimals)
+            } ${focussedAsset.symbol}`}</Cell>
           </Row>
           <Row>
             <Cell>Deposit</Cell>
