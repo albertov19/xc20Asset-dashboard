@@ -64,6 +64,7 @@ const assetInfoComponent = ({ network }) => {
             : multilocation.Xcm.interior[key][0].Parachain
             ? Number(multilocation.Xcm.interior[key][0].Parachain.replaceAll(",", ""))
             : "Relay";
+          assetsData[i].isLocal = false;
         } else {
           // Load asycnhronously all data
           const dataPromise = Promise.all([
@@ -71,6 +72,7 @@ const assetInfoComponent = ({ network }) => {
           ]);
 
           [metadata] = await dataPromise;
+          assetsData[i].isLocal = true;
         }
 
         assetsData[i].address = ethers.utils.getAddress(
@@ -125,7 +127,12 @@ const assetInfoComponent = ({ network }) => {
     if (assetData.length !== 0 && assetData[0]) {
       return assetData.map((asset, index) => {
         return (
-          <Row key={index}>
+          <Row
+            key={index}
+            onClick={() => {
+              handleClick(asset);
+            }}
+          >
             <Cell>{index}</Cell>
             <Cell>{asset.name}</Cell>
             <Cell>{asset.symbol}</Cell>
@@ -139,12 +146,12 @@ const assetInfoComponent = ({ network }) => {
     }
   };
 
-  const handleLocalChange = (e, { value }) => {
-    setFocusLocalAsset(value);
-  };
-
-  const handleExternalChange = (e, { value }) => {
-    setFocusExternalAsset(value);
+  const handleClick = (asset) => {
+    if (asset.isLocal) {
+      setFocusLocalAsset(asset);
+    } else {
+      setFocusExternalAsset(asset);
+    }
   };
 
   const renderAsset = (assetType) => {
@@ -154,22 +161,15 @@ const assetInfoComponent = ({ network }) => {
     let assetToSearch;
     switch (assetType) {
       case "local":
-        assetData = localAssets;
-        assetToSearch = focusLocalAsset;
+        focussedAsset = focusLocalAsset;
         break;
       case "external":
-        assetData = externalAssets;
-        assetToSearch = focusExternalAsset;
+        focussedAsset = focusExternalAsset;
         break;
       default:
         console.error("Option not allowed!");
     }
-    if (assetToSearch.length !== 0) {
-      assetData.forEach((asset) => {
-        if (asset.assetID.toString() === assetToSearch) {
-          focussedAsset = asset;
-        }
-      });
+    if (focussedAsset) {
       return (
         <Body>
           <Row>
@@ -230,10 +230,13 @@ const assetInfoComponent = ({ network }) => {
     <div>
       <Form error={!!{ errorMessage }.errorMessage}>
         <h2>External XC-20s</h2>
+        <p>
+          <i>Click on the External Asset to get more Info</i>
+        </p>
         {loading === true && <Loader active inline="centered" content="Loading" />}
         {loading === false && (
           <Container>
-            <Table singleLine>
+            <Table singleLine selectable>
               <Header>
                 <Row>
                   <HeaderCell>#</HeaderCell>
@@ -250,11 +253,14 @@ const assetInfoComponent = ({ network }) => {
           </Container>
         )}
         <h2> Local XC-20s</h2>
+        <p>
+          <i>Click on the External Asset to get more Info</i>
+        </p>
         <br />
         {loading === true && <Loader active inline="centered" content="Loading" />}
         {loading === false && (
           <Container>
-            <Table singleLine>
+            <Table singleLine selectable>
               <Header>
                 <Row>
                   <HeaderCell>#</HeaderCell>
@@ -273,14 +279,6 @@ const assetInfoComponent = ({ network }) => {
         <Grid>
           <Grid.Column width={8}>
             <h3> External Asset Info</h3>
-            <Dropdown
-              placeholder="Select External Asset"
-              selection
-              options={externalAssetsDropdown}
-              onChange={handleExternalChange}
-              value={focusExternalAsset || ""}
-            />
-            <br />
             <br />
             <Container>
               <Table definition singleLine>
@@ -290,14 +288,7 @@ const assetInfoComponent = ({ network }) => {
           </Grid.Column>
           <Grid.Column width={8}>
             <h3> Local Asset Info</h3>
-            <Dropdown
-              placeholder="Select Local Asset"
-              selection
-              options={localAssetsDropdown}
-              onChange={handleLocalChange}
-              value={focusLocalAsset || ""}
-            />
-            <br />
+            <h8> Click on the Local Asset</h8>
             <br />
             <Container>
               <Table definition singleLine>
