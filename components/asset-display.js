@@ -288,7 +288,6 @@ const assetInfoComponent = ({ network }) => {
           </Grid.Column>
           <Grid.Column width={8}>
             <h3> Local Asset Info</h3>
-            <h8> Click on the Local Asset</h8>
             <br />
             <Container>
               <Table definition singleLine>
