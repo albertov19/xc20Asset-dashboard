@@ -236,7 +236,7 @@ const assetInfoComponent = ({ network }) => {
         {loading === true && <Loader active inline="centered" content="Loading" />}
         {loading === false && (
           <Container>
-            <Table singleLine selectable>
+            <Table singleLine selectable color="teal">
               <Header>
                 <Row>
                   <HeaderCell>#</HeaderCell>
@@ -260,7 +260,7 @@ const assetInfoComponent = ({ network }) => {
         {loading === true && <Loader active inline="centered" content="Loading" />}
         {loading === false && (
           <Container>
-            <Table singleLine selectable>
+            <Table singleLine selectable color="pink">
               <Header>
                 <Row>
                   <HeaderCell>#</HeaderCell>
@@ -276,24 +276,32 @@ const assetInfoComponent = ({ network }) => {
           </Container>
         )}
         <br />
+        <hr />
+        <br />
         <Grid>
           <Grid.Column width={8}>
-            <h3> External Asset Info</h3>
-            <br />
-            <Container>
-              <Table definition singleLine>
-                {renderAsset("external")}
-              </Table>
-            </Container>
+            {focusExternalAsset ? (
+              <Container>
+                <h3> External Asset Info</h3>
+                <Table definition singleLine color="teal">
+                  {renderAsset("external")}
+                </Table>
+              </Container>
+            ) : (
+              ""
+            )}
           </Grid.Column>
           <Grid.Column width={8}>
-            <h3> Local Asset Info</h3>
-            <br />
-            <Container>
-              <Table definition singleLine>
-                {renderAsset("local")}
-              </Table>
-            </Container>
+            {focusLocalAsset ? (
+              <Container>
+                <h3> Local Asset Info</h3>
+                <Table definition singleLine color="pink">
+                  {renderAsset("local")}
+                </Table>
+              </Container>
+            ) : (
+              ""
+            )}
           </Grid.Column>
         </Grid>
         <br />
