@@ -8,8 +8,6 @@ import _ from "underscore";
 const assetInfoComponent = ({ network }) => {
   const [localAssets, setLocalAssets] = useState(Array());
   const [externalAssets, setExternalAssets] = useState(Array());
-  const [localAssetsDropdown, setLocalAssetsDropdown] = useState(Array());
-  const [externalAssetsDropdown, setExternalAssetsDropdown] = useState(Array());
   const [focusLocalAsset, setFocusLocalAsset] = useState("");
   const [focusExternalAsset, setFocusExternalAsset] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
@@ -18,8 +16,6 @@ const assetInfoComponent = ({ network }) => {
   useEffect(() => {
     setLocalAssets(Array());
     setExternalAssets(Array());
-    setLocalAssetsDropdown(Array());
-    setExternalAssetsDropdown(Array());
     setFocusLocalAsset("");
     setFocusExternalAsset("");
     loadAllData("assets");
@@ -49,7 +45,7 @@ const assetInfoComponent = ({ network }) => {
         let metadata;
         let multilocation;
         if (pallet === "assets") {
-          // Load asycnhronously all data
+          // Load External Assets asycnhronously all data
           const dataPromise = Promise.all([
             api.query.assetManager.assetIdType(assetsData[i].assetID.toString()),
             api.query[pallet].metadata(assetsData[i].assetID.toString()),
@@ -58,48 +54,52 @@ const assetInfoComponent = ({ network }) => {
           [multilocation, metadata] = await dataPromise;
           multilocation = multilocation.toHuman();
 
+          // Get Parachain ID
           const key = Object.keys(multilocation.Xcm.interior)[0];
           assetsData[i].paraID = multilocation.Xcm.interior[key].Parachain
             ? Number(multilocation.Xcm.interior[key].Parachain.replaceAll(",", ""))
             : multilocation.Xcm.interior[key][0].Parachain
             ? Number(multilocation.Xcm.interior[key][0].Parachain.replaceAll(",", ""))
             : "Relay";
+
+          // Calculate Address
+          assetsData[i].address = ethers.utils.getAddress(
+            "ffffffff" + bnToHex(assetsData[i].assetID).slice(2)
+          );
+
           assetsData[i].isLocal = false;
         } else {
-          // Load asycnhronously all data
+          // Load Local Asset asycnhronously all data
           const dataPromise = Promise.all([
             api.query[pallet].metadata(assetsData[i].assetID.toString()),
           ]);
 
           [metadata] = await dataPromise;
+
+          // Calculate Address
+          assetsData[i].address = ethers.utils.getAddress(
+            "fffffffe" + bnToHex(assetsData[i].assetID).slice(2)
+          );
           assetsData[i].isLocal = true;
         }
 
-        assetsData[i].address = ethers.utils.getAddress(
-          "fffffffe" + bnToHex(assetsData[i].assetID).slice(2)
-        );
         assetsData[i].name = metadata.name.toHuman().toString();
         assetsData[i].decimals = metadata.decimals.toHuman().toString();
         assetsData[i].symbol = metadata.symbol.toHuman().toString();
         assetsData[i].metadata = metadata;
-        assetsDataDropdown.push({
-          key: assetsData[i].assetID.toString(),
-          text: assetsData[i].name + " - " + assetsData[i].address,
-          value: assetsData[i].assetID.toString(),
-        });
       }
 
+      assetsData.unshift(assetsData.pop());
       let sortedAssets = _.sortBy(assetsData, "paraID");
-      sortedAssets.unshift(sortedAssets.pop());
+
+      //sortedAssets.unshift(sortedAssets.pop());
 
       switch (pallet) {
         case "localAssets":
           setLocalAssets(sortedAssets);
-          setLocalAssetsDropdown(assetsDataDropdown);
           break;
         case "assets":
           setExternalAssets(sortedAssets);
-          setExternalAssetsDropdown(assetsDataDropdown);
           break;
         default:
           throw new Error("Option not allowed!");
@@ -133,7 +133,7 @@ const assetInfoComponent = ({ network }) => {
               handleClick(asset);
             }}
           >
-            <Cell>{index}</Cell>
+            <Cell>{index + 1}</Cell>
             <Cell>{asset.name}</Cell>
             <Cell>{asset.symbol}</Cell>
             <Cell>{asset.address}</Cell>
@@ -157,8 +157,6 @@ const assetInfoComponent = ({ network }) => {
   const renderAsset = (assetType) => {
     const { Row, Cell } = Table;
     let focussedAsset;
-    let assetData;
-    let assetToSearch;
     switch (assetType) {
       case "local":
         focussedAsset = focusLocalAsset;
