@@ -41,7 +41,7 @@ const MintalbeXC20Dashboard = () => {
 
   useEffect(() => {
     if (router.query.network && network !== router.query.network) {
-      setNetwork(router.query.network);
+      setNetwork(router.query.network.toLocaleLowerCase());
     }
   }, [router.query.network]);
 
@@ -78,7 +78,15 @@ const MintalbeXC20Dashboard = () => {
         </Menu.Item>
       </Menu>
       <br />
-      <AssetDisplayComponent network={network} />
+      {network ? (
+        network == "moonbeam" || network == "moonriver" || network == "moonbase" ? (
+          <AssetDisplayComponent network={network} />
+        ) : (
+          <h3>Network must be Moonbeam, Moonriver, or Moonbase</h3>
+        )
+      ) : (
+        ""
+      )}
       <p>
         Don't judge the code :) as it is for demostration purposes only. You can check the source
         code &nbsp;
