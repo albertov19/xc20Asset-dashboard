@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+
 import { Form, Container, Message, Table, Loader, Dropdown, Grid } from "semantic-ui-react";
 import * as ethers from "ethers";
 import { subProvider } from "../web3/api";
@@ -28,7 +29,6 @@ const assetInfoComponent = ({ network }) => {
 
     try {
       let assetsData = Array();
-      let assetsDataDropdown = Array();
 
       // Load Provider
       const api = await subProvider(network);
@@ -60,7 +60,7 @@ const assetInfoComponent = ({ network }) => {
             ? Number(multilocation.Xcm.interior[key].Parachain.replaceAll(",", ""))
             : multilocation.Xcm.interior[key][0].Parachain
             ? Number(multilocation.Xcm.interior[key][0].Parachain.replaceAll(",", ""))
-            : "Relay";
+            : 0;
 
           // Calculate Address
           assetsData[i].address = ethers.utils.getAddress(
@@ -89,16 +89,16 @@ const assetInfoComponent = ({ network }) => {
         assetsData[i].metadata = metadata;
       }
 
-      assetsData.unshift(assetsData.pop());
-      let sortedAssets = _.sortBy(assetsData, "paraID");
-
       //sortedAssets.unshift(sortedAssets.pop());
 
       switch (pallet) {
         case "localAssets":
-          setLocalAssets(sortedAssets);
+          setLocalAssets(assetsData);
           break;
         case "assets":
+          let sortedAssets = _.sortBy(assetsData, "paraID");
+          sortedAssets[0].paraID = "Relay";
+
           setExternalAssets(sortedAssets);
           break;
         default:

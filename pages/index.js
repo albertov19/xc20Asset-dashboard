@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Container, Menu, Dropdown, MenuItem } from "semantic-ui-react";
 import Head from "next/head";
-
+import { useRouter } from "next/router";
 import { Link } from "../routes";
 import AssetDisplayComponent from "../components/asset-display";
 
@@ -27,9 +27,28 @@ const Networks = [
 ];
 
 const MintalbeXC20Dashboard = () => {
-  const [network, setNetwork] = useState("moonbeam");
+  const router = useRouter();
+
+  // Set the Intial State of the Network based on Default Param or Route
+  let defaultNetwork;
+  const { network: networkQueryParam } = router.query;
+  if (networkQueryParam) {
+    defaultNetwork = router.query.network;
+  } else {
+    defaultNetwork = Networks[0].value;
+  }
+  const [network, setNetwork] = useState(defaultNetwork);
+
+  useEffect(() => {
+    if (router.query.network && network !== router.query.network) {
+      setNetwork(router.query.network);
+    }
+  }, [router.query.network]);
 
   const handleChange = (e, { value }) => {
+    // Update the URL query param when the dropdown selection changes
+    router.push(`/?network=${value}`);
+
     setNetwork(value);
   };
 
@@ -54,7 +73,7 @@ const MintalbeXC20Dashboard = () => {
             selection
             options={Networks}
             onChange={handleChange}
-            defaultValue={Networks[0].value}
+            value={defaultNetwork}
           />
         </Menu.Item>
       </Menu>
