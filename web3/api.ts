@@ -1,4 +1,5 @@
 const { ApiPromise, WsProvider } = require("@polkadot/api");
+declare let ethereum: any;
 
 export async function subProvider(network) {
   const chains = {
