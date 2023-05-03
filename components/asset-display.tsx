@@ -75,12 +75,15 @@ const assetInfoComponent = ({ network }) => {
           // Calculate Address
           assetsData[i].address = ethers.utils.getAddress('fffffffe' + bnToHex(assetsData[i].assetID).slice(2));
           assetsData[i].isLocal = true;
+
+          multilocation = {};
         }
 
         assetsData[i].name = metadata.name.toHuman().toString();
         assetsData[i].decimals = metadata.decimals.toHuman().toString();
         assetsData[i].symbol = metadata.symbol.toHuman().toString();
         assetsData[i].metadata = metadata;
+        assetsData[i].multilocation = multilocation;
       }
 
       //sortedAssets.unshift(sortedAssets.pop());
@@ -164,6 +167,19 @@ const assetInfoComponent = ({ network }) => {
     if (focussedAsset) {
       return (
         <Body>
+          <Row>
+            <Cell>Multilocation</Cell>
+            <Cell
+              style={{
+                maxWidth: 8,
+                wordWrap: 'break-word',
+                whiteSpace: 'normal',
+                overflowWrap: 'anywhere',
+              }}
+            >
+              {JSON.stringify(focussedAsset.multilocation)}
+            </Cell>
+          </Row>
           <Row>
             <Cell>Owner</Cell>
             <Cell>{focussedAsset.assetInfo.toHuman().owner}</Cell>
