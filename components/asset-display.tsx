@@ -40,32 +40,37 @@ const assetInfoComponent = ({ network }) => {
           assetInfo: exposure,
         });
       });
-
       for (let i = 0; i < assetsData.length; i++) {
         let metadata;
         let multilocation;
         if (pallet === 'assets') {
-          // Load External Assets asycnhronously all data
-          const dataPromise = Promise.all([
-            api.query.assetManager.assetIdType(assetsData[i].assetID.toString()),
-            api.query[pallet].metadata(assetsData[i].assetID.toString()),
-          ]);
+          try {
+            // Load External Assets asycnhronously all data
+            const dataPromise = Promise.all([
+              api.query.assetManager.assetIdType(assetsData[i].assetID.toString()),
+              api.query[pallet].metadata(assetsData[i].assetID.toString()),
+            ]);
 
-          [multilocation, metadata] = await dataPromise;
-          multilocation = multilocation.toHuman();
+            [multilocation, metadata] = await dataPromise;
+            multilocation = multilocation.toHuman();
 
-          // Get Parachain ID
-          const key = Object.keys(multilocation.Xcm.interior)[0];
-          assetsData[i].paraID = multilocation.Xcm.interior[key].Parachain
-            ? Number(multilocation.Xcm.interior[key].Parachain.replaceAll(',', ''))
-            : multilocation.Xcm.interior[key][0].Parachain
-            ? Number(multilocation.Xcm.interior[key][0].Parachain.replaceAll(',', ''))
-            : 0;
+            // Get Parachain ID
+            const key = Object.keys(multilocation.Xcm.interior)[0];
+            assetsData[i].paraID = multilocation.Xcm.interior[key].Parachain
+              ? Number(multilocation.Xcm.interior[key].Parachain.replaceAll(',', ''))
+              : multilocation.Xcm.interior[key][0].Parachain
+              ? Number(multilocation.Xcm.interior[key][0].Parachain.replaceAll(',', ''))
+              : 0;
 
-          // Calculate Address
-          assetsData[i].address = ethers.utils.getAddress('ffffffff' + bnToHex(assetsData[i].assetID).slice(2));
+            // Calculate Address
+            assetsData[i].address = ethers.utils.getAddress(
+              'ffffffff' + bnToHex(assetsData[i].assetID).slice(2).padStart(32, '0')
+            );
 
-          assetsData[i].isLocal = false;
+            assetsData[i].isLocal = false;
+          } catch (err) {
+            console.log(err.message);
+          }
         } else {
           // Load Local Asset asycnhronously all data
           const dataPromise = Promise.all([api.query[pallet].metadata(assetsData[i].assetID.toString())]);
@@ -73,7 +78,9 @@ const assetInfoComponent = ({ network }) => {
           [metadata] = await dataPromise;
 
           // Calculate Address
-          assetsData[i].address = ethers.utils.getAddress('fffffffe' + bnToHex(assetsData[i].assetID).slice(2));
+          assetsData[i].address = ethers.utils.getAddress(
+            'fffffffe' + bnToHex(assetsData[i].assetID).padStart(32).slice(2)
+          );
           assetsData[i].isLocal = true;
 
           multilocation = {};
@@ -93,6 +100,9 @@ const assetInfoComponent = ({ network }) => {
           setLocalAssets(assetsData);
           break;
         case 'assets':
+          console.log('hello');
+          console.log(assetsData);
+
           let sortedAssets = _.sortBy(assetsData, 'paraID');
           sortedAssets[0].paraID = 'Relay';
 
