@@ -31,6 +31,7 @@ const assetInfoComponent = ({ network }) => {
       let assetsData = Array();
 
       // Load Provider
+      console.log(network);
       const api = await subProvider(network);
 
       const data = await api.query[pallet].asset.entries();
@@ -86,11 +87,15 @@ const assetInfoComponent = ({ network }) => {
           multilocation = {};
         }
 
+        // Get and Check Code
+        const code = await api.rpc.eth.getCode(assetsData[i].address);
+
         assetsData[i].name = metadata.name.toHuman().toString();
         assetsData[i].decimals = metadata.decimals.toHuman().toString();
         assetsData[i].symbol = metadata.symbol.toHuman().toString();
         assetsData[i].metadata = metadata;
         assetsData[i].multilocation = multilocation;
+        assetsData[i].code = code == '0x60006000fd' ? true : false;
       }
 
       //sortedAssets.unshift(sortedAssets.pop());
@@ -100,9 +105,6 @@ const assetInfoComponent = ({ network }) => {
           setLocalAssets(assetsData);
           break;
         case 'assets':
-          console.log('hello');
-          console.log(assetsData);
-
           let sortedAssets = _.sortBy(assetsData, 'paraID');
           sortedAssets[0].paraID = 'Relay';
 
@@ -146,6 +148,7 @@ const assetInfoComponent = ({ network }) => {
             <Cell>{asset.address}</Cell>
             <Cell>{asset.decimals}</Cell>
             <Cell>{asset.assetID.toString()}</Cell>
+            <Cell>{asset.code ? '✔️' : '❌'}</Cell>
             {assetType === 'external' && <Cell>{asset.paraID}</Cell>}
           </Row>
         );
@@ -262,6 +265,7 @@ const assetInfoComponent = ({ network }) => {
                   <HeaderCell>XC-20 Address</HeaderCell>
                   <HeaderCell>Decimals</HeaderCell>
                   <HeaderCell>Asset ID</HeaderCell>
+                  <HeaderCell>Code</HeaderCell>
                   <HeaderCell>Para-ID</HeaderCell>
                 </Row>
               </Header>
@@ -286,6 +290,7 @@ const assetInfoComponent = ({ network }) => {
                   <HeaderCell>XC-20 Address</HeaderCell>
                   <HeaderCell>Decimals</HeaderCell>
                   <HeaderCell>Asset ID</HeaderCell>
+                  <HeaderCell>Code</HeaderCell>
                 </Row>
               </Header>
               <Body>{renderAssets('local')}</Body>

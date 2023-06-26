@@ -14,16 +14,13 @@ export async function subProvider(network) {
     },
   };
 
-  if (typeof ethereum !== "undefined") {
-    // Create WS Provider
-    const wsProvider = new WsProvider(chains[network].ws);
+  // Create WS Provider
+  const wsProvider = new WsProvider(chains[network].ws);
 
-    // Wait for Provider
-    const api = await ApiPromise.create({
-      provider: wsProvider,
-    });
-    await api.isReady;
-
-    return api;
-  }
+  // Wait for Provider
+  const api = await ApiPromise.create({
+    provider: wsProvider,
+  });
+  await api.isReady;
+  return api;
 }
