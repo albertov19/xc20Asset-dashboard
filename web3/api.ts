@@ -4,13 +4,13 @@ declare let ethereum: any;
 export async function subProvider(network) {
   const chains = {
     moonbase: {
-      ws: "wss://moonbase-alpha.blastapi.io/1149fdef-ff34-48c0-9be4-7d81cb673a08",
+      ws: "wss://moonbase.unitedbloc.com",
     },
     moonriver: {
-      ws: "wss://moonriver.blastapi.io/1149fdef-ff34-48c0-9be4-7d81cb673a08",
+      ws: "wss://moonriver.unitedbloc.com",
     },
     moonbeam: {
-      ws: "wss://moonbeam.blastapi.io/1149fdef-ff34-48c0-9be4-7d81cb673a08",
+      ws: "wss://moonbeam.unitedbloc.com",
     },
   };
 
