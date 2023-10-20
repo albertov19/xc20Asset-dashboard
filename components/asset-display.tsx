@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-
 import { Form, Container, Message, Table, Loader, Dropdown, Grid } from 'semantic-ui-react';
 import * as ethers from 'ethers';
 import { subProvider } from '../web3/api';
@@ -7,20 +6,14 @@ import { bnToHex } from '@polkadot/util';
 import _ from 'underscore';
 
 const assetInfoComponent = ({ network }) => {
-  const [localAssets, setLocalAssets] = useState(Array());
   const [externalAssets, setExternalAssets] = useState(Array());
-  const [focusLocalAsset, setFocusLocalAsset] = useState('');
-  const [focusExternalAsset, setFocusExternalAsset] = useState('');
+  const [focussedAsset, setFocussedAsset] = useState<any>(null);
   const [errorMessage, setErrorMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    setLocalAssets(Array());
     setExternalAssets(Array());
-    setFocusLocalAsset('');
-    setFocusExternalAsset('');
     loadAllData('assets');
-    loadAllData('localAssets');
   }, [network]);
 
   const loadAllData = async (pallet) => {
@@ -31,9 +24,9 @@ const assetInfoComponent = ({ network }) => {
       let assetsData = Array();
 
       // Load Provider
-      console.log(network);
       const api = await subProvider(network);
 
+      // Get all assets
       const data = await api.query[pallet].asset.entries();
       data.forEach(async ([key, exposure]) => {
         assetsData.push({
@@ -41,9 +34,12 @@ const assetInfoComponent = ({ network }) => {
           assetInfo: exposure,
         });
       });
+
+      // Go through each asset
       for (let i = 0; i < assetsData.length; i++) {
         let metadata;
         let multilocation;
+        let unitsPerSecond;
         if (pallet === 'assets') {
           try {
             // Load External Assets asycnhronously all data
@@ -53,14 +49,21 @@ const assetInfoComponent = ({ network }) => {
             ]);
 
             [multilocation, metadata] = await dataPromise;
-            multilocation = multilocation.toHuman();
+
+            // Get Units Per Second
+            const rawUnitsPerSecond = (
+              await api.query.assetManager.assetTypeUnitsPerSecond({
+                Xcm: multilocation.toJSON().xcm,
+              })
+            ).toString();
+            unitsPerSecond = rawUnitsPerSecond ? rawUnitsPerSecond : 'N/A';
 
             // Get Parachain ID
-            const key = Object.keys(multilocation.Xcm.interior)[0];
-            assetsData[i].paraID = multilocation.Xcm.interior[key].Parachain
-              ? Number(multilocation.Xcm.interior[key].Parachain.replaceAll(',', ''))
-              : multilocation.Xcm.interior[key][0].Parachain
-              ? Number(multilocation.Xcm.interior[key][0].Parachain.replaceAll(',', ''))
+            const key = Object.keys(multilocation.toHuman().Xcm['interior'])[0];
+            assetsData[i].paraID = multilocation.toHuman().Xcm['interior'][key].Parachain
+              ? Number(multilocation.toHuman().Xcm['interior'][key].Parachain.replaceAll(',', ''))
+              : multilocation.toHuman().Xcm['interior'][key][0].Parachain
+              ? Number(multilocation.toHuman().Xcm['interior'][key][0].Parachain.replaceAll(',', ''))
               : 0;
 
             // Calculate Address
@@ -72,47 +75,26 @@ const assetInfoComponent = ({ network }) => {
           } catch (err) {
             console.log(err.message);
           }
-        } else {
-          // Load Local Asset asycnhronously all data
-          const dataPromise = Promise.all([api.query[pallet].metadata(assetsData[i].assetID.toString())]);
-
-          [metadata] = await dataPromise;
-
-          // Calculate Address
-          assetsData[i].address = ethers.utils.getAddress(
-            'fffffffe' + bnToHex(assetsData[i].assetID).padStart(32).slice(2)
-          );
-          assetsData[i].isLocal = true;
-
-          multilocation = {};
         }
 
         // Get and Check Code
         const code = await api.rpc.eth.getCode(assetsData[i].address);
 
+        // Gather all data
         assetsData[i].name = metadata.name.toHuman().toString();
         assetsData[i].decimals = metadata.decimals.toHuman().toString();
         assetsData[i].symbol = metadata.symbol.toHuman().toString();
         assetsData[i].metadata = metadata;
         assetsData[i].multilocation = multilocation;
+        assetsData[i].unitsPerSecond = unitsPerSecond;
         assetsData[i].code = code == '0x60006000fd' ? true : false;
       }
 
-      //sortedAssets.unshift(sortedAssets.pop());
+      // Sort Results
+      let sortedAssets = _.sortBy(assetsData, 'paraID');
+      sortedAssets[0].paraID = 'Relay';
 
-      switch (pallet) {
-        case 'localAssets':
-          setLocalAssets(assetsData);
-          break;
-        case 'assets':
-          let sortedAssets = _.sortBy(assetsData, 'paraID');
-          sortedAssets[0].paraID = 'Relay';
-
-          setExternalAssets(sortedAssets);
-          break;
-        default:
-          throw new Error('Option not allowed!');
-      }
+      setExternalAssets(sortedAssets);
 
       setLoading(false);
     } catch (err) {
@@ -120,26 +102,15 @@ const assetInfoComponent = ({ network }) => {
     }
   };
 
-  const renderAssets = (assetType) => {
+  const renderAssets = () => {
     const { Row, Cell } = Table;
-    let assetData;
-    switch (assetType) {
-      case 'local':
-        assetData = localAssets;
-        break;
-      case 'external':
-        assetData = externalAssets;
-        break;
-      default:
-        console.error('Option not allowed!');
-    }
-    if (assetData.length !== 0 && assetData[0]) {
-      return assetData.map((asset, index) => {
+    if (externalAssets.length !== 0 && externalAssets[0]) {
+      return externalAssets.map((asset, index) => {
         return (
           <Row
             key={index}
             onClick={() => {
-              handleClick(asset);
+              setFocussedAsset(asset);
             }}
           >
             <Cell>{index + 1}</Cell>
@@ -149,98 +120,95 @@ const assetInfoComponent = ({ network }) => {
             <Cell>{asset.decimals}</Cell>
             <Cell>{asset.assetID.toString()}</Cell>
             <Cell>{asset.code ? '✔️' : '❌'}</Cell>
-            {assetType === 'external' && <Cell>{asset.paraID}</Cell>}
+            <Cell>{asset.paraID}</Cell>
           </Row>
         );
       });
     }
   };
 
-  const handleClick = (asset) => {
-    if (asset.isLocal) {
-      setFocusLocalAsset(asset);
-    } else {
-      setFocusExternalAsset(asset);
-    }
-  };
-
-  const renderAsset = (assetType) => {
+  const renderAsset = () => {
     const { Row, Cell } = Table;
-    let focussedAsset;
-    switch (assetType) {
-      case 'local':
-        focussedAsset = focusLocalAsset;
-        break;
-      case 'external':
-        focussedAsset = focusExternalAsset;
-        break;
-      default:
-        console.error('Option not allowed!');
-    }
-    if (focussedAsset) {
+
+    if (focussedAsset && Object.keys(focussedAsset).length > 0) {
       return (
-        <Body>
-          <Row>
-            <Cell>Multilocation</Cell>
-            <Cell
-              style={{
-                maxWidth: 8,
-                wordWrap: 'break-word',
-                whiteSpace: 'normal',
-                overflowWrap: 'anywhere',
-              }}
-            >
-              {JSON.stringify(focussedAsset.multilocation)}
-            </Cell>
-          </Row>
-          <Row>
-            <Cell>Owner</Cell>
-            <Cell>{focussedAsset.assetInfo.toHuman().owner}</Cell>
-          </Row>
-          <Row>
-            <Cell>Issuer</Cell>
-            <Cell>{focussedAsset.assetInfo.toHuman().issuer}</Cell>
-          </Row>
-          <Row>
-            <Cell>Admin</Cell>
-            <Cell>{focussedAsset.assetInfo.toHuman().admin}</Cell>
-          </Row>
-          <Row>
-            <Cell>Freezer</Cell>
-            <Cell>{focussedAsset.assetInfo.toHuman().freezer}</Cell>
-          </Row>
-          <Row>
-            <Cell>Supply (raw)</Cell>
-            <Cell>{`${focussedAsset.assetInfo.toHuman().supply} `}</Cell>
-          </Row>
-          <Row>
-            <Cell>Supply</Cell>
-            <Cell>{`${
-              focussedAsset.assetInfo.toHuman().supply.replaceAll(',', '') / Math.pow(10, focussedAsset.decimals)
-            } ${focussedAsset.symbol}`}</Cell>
-          </Row>
-          <Row>
-            <Cell>Deposit</Cell>
-            <Cell>{focussedAsset.assetInfo.toHuman().deposit}</Cell>
-          </Row>
-          <Row>
-            <Cell>Min. Balance</Cell>
-            <Cell>{focussedAsset.assetInfo.toHuman().minBalance}</Cell>
-          </Row>
-          <Row>
-            <Cell>Accounts</Cell>
-            <Cell>{focussedAsset.assetInfo.toHuman().accounts}</Cell>
-          </Row>
-          <Row>
-            <Cell>Sufficients</Cell>
-            <Cell>{focussedAsset.assetInfo.toHuman().sufficients}</Cell>
-          </Row>
-          <Row>
-            <Cell>Approvals</Cell>
-            <Cell>{focussedAsset.assetInfo.toHuman().approvals}</Cell>
-          </Row>
-        </Body>
+        <Container>
+          <h3> External Asset Info</h3>
+          <Table definition singleLine color='teal'>
+            <Body>
+              <Row>
+                <Cell>Multilocation</Cell>
+                <Cell
+                  style={{
+                    maxWidth: 8,
+                    wordWrap: 'break-word',
+                    whiteSpace: 'normal',
+                    overflowWrap: 'anywhere',
+                  }}
+                >
+                  {JSON.stringify(focussedAsset.multilocation)}
+                </Cell>
+              </Row>
+              <Row>
+                <Cell>Owner</Cell>
+                <Cell>{focussedAsset.assetInfo.toHuman().owner}</Cell>
+              </Row>
+              <Row>
+                <Cell>Issuer</Cell>
+                <Cell>{focussedAsset.assetInfo.toHuman().issuer}</Cell>
+              </Row>
+              <Row>
+                <Cell>Admin</Cell>
+                <Cell>{focussedAsset.assetInfo.toHuman().admin}</Cell>
+              </Row>
+              <Row>
+                <Cell>Freezer</Cell>
+                <Cell>{focussedAsset.assetInfo.toHuman().freezer}</Cell>
+              </Row>
+              <Row>
+                <Cell>Is Sufficient?</Cell>
+                <Cell>{focussedAsset.assetInfo.toHuman().isSufficient ? '✔️' : '❌'}</Cell>
+              </Row>
+              <Row>
+                <Cell>Supply (raw)</Cell>
+                <Cell>{`${focussedAsset.assetInfo.toHuman().supply} `}</Cell>
+              </Row>
+              <Row>
+                <Cell>Supply</Cell>
+                <Cell>{`${
+                  focussedAsset.assetInfo.toHuman().supply.replaceAll(',', '') / Math.pow(10, focussedAsset.decimals)
+                } ${focussedAsset.symbol}`}</Cell>
+              </Row>
+              <Row>
+                <Cell>UnitsPerSecond</Cell>
+                <Cell>{`${focussedAsset.unitsPerSecond}`}</Cell>
+              </Row>
+              <Row>
+                <Cell>Accounts</Cell>
+                <Cell>{focussedAsset.assetInfo.toHuman().accounts}</Cell>
+              </Row>
+              <Row>
+                <Cell>Sufficients</Cell>
+                <Cell>{focussedAsset.assetInfo.toHuman().sufficients}</Cell>
+              </Row>
+              <Row>
+                <Cell>Approvals</Cell>
+                <Cell>{focussedAsset.assetInfo.toHuman().approvals}</Cell>
+              </Row>
+              <Row>
+                <Cell>Min. Balance</Cell>
+                <Cell>{focussedAsset.assetInfo.toHuman().minBalance}</Cell>
+              </Row>
+              <Row>
+                <Cell>Deposit</Cell>
+                <Cell>{focussedAsset.assetInfo.toHuman().deposit}</Cell>
+              </Row>
+            </Body>
+          </Table>
+        </Container>
       );
+    } else {
+      return null;
     }
   };
 
@@ -269,31 +237,7 @@ const assetInfoComponent = ({ network }) => {
                   <HeaderCell>Para-ID</HeaderCell>
                 </Row>
               </Header>
-              <Body>{renderAssets('external')}</Body>
-            </Table>
-          </Container>
-        )}
-        <h2> Local XC-20s</h2>
-        <p>
-          <i>Click on the External Asset to get more Info</i>
-        </p>
-        <br />
-        {loading === true && <Loader active inline='centered' content='Loading' />}
-        {loading === false && (
-          <Container>
-            <Table singleLine selectable color='pink'>
-              <Header>
-                <Row>
-                  <HeaderCell>#</HeaderCell>
-                  <HeaderCell>Asset Name</HeaderCell>
-                  <HeaderCell>Symbol</HeaderCell>
-                  <HeaderCell>XC-20 Address</HeaderCell>
-                  <HeaderCell>Decimals</HeaderCell>
-                  <HeaderCell>Asset ID</HeaderCell>
-                  <HeaderCell>Code</HeaderCell>
-                </Row>
-              </Header>
-              <Body>{renderAssets('local')}</Body>
+              <Body>{renderAssets()}</Body>
             </Table>
           </Container>
         )}
@@ -301,30 +245,7 @@ const assetInfoComponent = ({ network }) => {
         <hr />
         <br />
         <Grid>
-          <Grid.Column width={8}>
-            {focusExternalAsset ? (
-              <Container>
-                <h3> External Asset Info</h3>
-                <Table definition singleLine color='teal'>
-                  {renderAsset('external')}
-                </Table>
-              </Container>
-            ) : (
-              ''
-            )}
-          </Grid.Column>
-          <Grid.Column width={8}>
-            {focusLocalAsset ? (
-              <Container>
-                <h3> Local Asset Info</h3>
-                <Table definition singleLine color='pink'>
-                  {renderAsset('local')}
-                </Table>
-              </Container>
-            ) : (
-              ''
-            )}
-          </Grid.Column>
+          <Grid.Column width={8}>{focussedAsset ? renderAsset() : ''}</Grid.Column>
         </Grid>
         <br />
         <br />
