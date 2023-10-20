@@ -133,8 +133,10 @@ const assetInfoComponent = ({ network }) => {
     if (focussedAsset && Object.keys(focussedAsset).length > 0) {
       return (
         <Container>
+          <br />
+          <hr />
           <h3> External Asset Info</h3>
-          <Table definition singleLine color='teal'>
+          <Table definition singleLine color='teal' size='small'>
             <Body>
               <Row>
                 <Cell>Multilocation</Cell>
@@ -224,26 +226,26 @@ const assetInfoComponent = ({ network }) => {
         {loading === true && <Loader active inline='centered' content='Loading' />}
         {loading === false && (
           <Container>
-            <Table singleLine selectable color='teal'>
-              <Header>
-                <Row>
-                  <HeaderCell>#</HeaderCell>
-                  <HeaderCell>Asset Name</HeaderCell>
-                  <HeaderCell>Symbol</HeaderCell>
-                  <HeaderCell>XC-20 Address</HeaderCell>
-                  <HeaderCell>Decimals</HeaderCell>
-                  <HeaderCell>Asset ID</HeaderCell>
-                  <HeaderCell>Code</HeaderCell>
-                  <HeaderCell>Para-ID</HeaderCell>
-                </Row>
-              </Header>
-              <Body>{renderAssets()}</Body>
-            </Table>
+            <div style={{ overflowX: 'auto' }}>
+              <Table size='small' singleLine selectable color='teal'>
+                <Header>
+                  <Row>
+                    <HeaderCell>#</HeaderCell>
+                    <HeaderCell>Asset Name</HeaderCell>
+                    <HeaderCell>Symbol</HeaderCell>
+                    <HeaderCell>XC-20 Address</HeaderCell>
+                    <HeaderCell>Dec.</HeaderCell>
+                    <HeaderCell>Asset ID</HeaderCell>
+                    <HeaderCell>Code</HeaderCell>
+                    <HeaderCell>ParaID</HeaderCell>
+                  </Row>
+                </Header>
+                <Body>{renderAssets()}</Body>
+              </Table>
+            </div>
           </Container>
         )}
-        <br />
-        <hr />
-        <br />
+
         <Grid>
           <Grid.Column width={8}>{focussedAsset ? renderAsset() : ''}</Grid.Column>
         </Grid>

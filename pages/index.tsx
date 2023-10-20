@@ -53,43 +53,44 @@ const MintalbeXC20Dashboard = () => {
   };
 
   return (
-    <Container>
-      <Head>
-        <title>XC-20s Dashboard</title>
-        <link rel='icon' type='image/png' sizes='32x32' href='/favicon.png' />
-        <link rel='stylesheet' href='//cdn.jsdelivr.net/npm/semantic-ui@2.4.2/dist/semantic.min.css' />
-      </Head>
-      <div style={{ paddingTop: '10px' }}></div>
-      <Menu>
-        <Link href='/'>
-          <a className='item'>XC-20s Dashboard</a>
-        </Link>
-        <Menu.Item position='right'>
-          <Dropdown
-            placeholder='Select Network'
-            selection
-            options={Networks}
-            onChange={handleChange}
-            value={defaultNetwork}
-          />
-        </Menu.Item>
-      </Menu>
-      <br />
-      {network ? (
-        network == 'moonbeam' || network == 'moonriver' || network == 'moonbase' ? (
-          <AssetDisplayComponent network={network} />
+    <div style={{ paddingLeft: '20px', paddingRight: '20px', paddingTop: '10px', overflowX: 'auto' }}>
+      <Container>
+        <Head>
+          <title>XC-20s Dashboard</title>
+          <link rel='icon' type='image/png' sizes='32x32' href='/favicon.png' />
+          <link rel='stylesheet' href='//cdn.jsdelivr.net/npm/semantic-ui@2.4.2/dist/semantic.min.css' />
+        </Head>
+        <Menu>
+          <Link href='/'>
+            <a className='item'>XC-20s Dashboard</a>
+          </Link>
+          <Menu.Item position='right'>
+            <Dropdown
+              placeholder='Select Network'
+              selection
+              options={Networks}
+              onChange={handleChange}
+              value={defaultNetwork}
+            />
+          </Menu.Item>
+        </Menu>
+        <br />
+        {network ? (
+          network == 'moonbeam' || network == 'moonriver' || network == 'moonbase' ? (
+            <AssetDisplayComponent network={network} />
+          ) : (
+            <h3>Network must be Moonbeam, Moonriver, or Moonbase</h3>
+          )
         ) : (
-          <h3>Network must be Moonbeam, Moonriver, or Moonbase</h3>
-        )
-      ) : (
-        ''
-      )}
-      <p>
-        Don't judge the code :) as it is for demostration purposes only. You can check the source code &nbsp;
-        <a href='https://github.com/albertov19/localAsset-dashboard'>here</a>
-      </p>
-      <br />
-    </Container>
+          ''
+        )}
+        <p>
+          Don't judge the code :) as it is for demostration purposes only. You can check the source code &nbsp;
+          <a href='https://github.com/albertov19/localAsset-dashboard'>here</a>
+        </p>
+        <br />
+      </Container>
+    </div>
   );
 };
 
