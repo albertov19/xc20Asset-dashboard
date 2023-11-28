@@ -5,47 +5,43 @@ import { subProvider } from '../web3/api';
 import { bnToHex } from '@polkadot/util';
 import _ from 'underscore';
 
-const assetInfoComponent = ({ network }) => {
+const assetInfoComponent = ({ network, loading, setLoading }) => {
   const [externalAssets, setExternalAssets] = useState(Array());
   const [focussedAsset, setFocussedAsset] = useState<any>(null);
   const [errorMessage, setErrorMessage] = useState('');
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    setExternalAssets(Array());
-    loadAllData('assets');
-  }, [network]);
+    const loadAllData = async () => {
+      setFocussedAsset(null);
+      setLoading(true);
+      setErrorMessage('');
 
-  const loadAllData = async (pallet) => {
-    setLoading(true);
-    setErrorMessage('');
+      try {
+        let assetsData = Array();
 
-    try {
-      let assetsData = Array();
+        // Load Provider
+        const api = await subProvider(network);
 
-      // Load Provider
-      const api = await subProvider(network);
-
-      // Get all assets
-      const data = await api.query[pallet].asset.entries();
-      data.forEach(async ([key, exposure]) => {
-        assetsData.push({
-          assetID: BigInt(key.args.map((k) => k.toHuman())[0].replaceAll(',', '')),
-          assetInfo: exposure,
+        // Get all assets
+        const data = await api.query.assets.asset.entries();
+        data.forEach(async ([key, exposure]) => {
+          assetsData.push({
+            assetID: BigInt(key.args.map((k) => k.toHuman())[0].replaceAll(',', '')),
+            assetInfo: exposure,
+          });
         });
-      });
 
-      // Go through each asset
-      for (let i = 0; i < assetsData.length; i++) {
-        let metadata;
-        let multilocation;
-        let unitsPerSecond;
-        if (pallet === 'assets') {
+        // Go through each asset
+        for (let i = 0; i < assetsData.length; i++) {
+          let metadata;
+          let multilocation;
+          let unitsPerSecond;
+
           try {
             // Load External Assets asycnhronously all data
             const dataPromise = Promise.all([
               api.query.assetManager.assetIdType(assetsData[i].assetID.toString()),
-              api.query[pallet].metadata(assetsData[i].assetID.toString()),
+              api.query.assets.metadata(assetsData[i].assetID.toString()),
             ]);
 
             [multilocation, metadata] = await dataPromise;
@@ -75,32 +71,34 @@ const assetInfoComponent = ({ network }) => {
           } catch (err) {
             console.log(err.message);
           }
+
+          // Get and Check Code
+          const code = await api.rpc.eth.getCode(assetsData[i].address);
+
+          // Gather all data
+          assetsData[i].name = metadata.name.toHuman().toString();
+          assetsData[i].decimals = metadata.decimals.toHuman().toString();
+          assetsData[i].symbol = metadata.symbol.toHuman().toString();
+          assetsData[i].metadata = metadata;
+          assetsData[i].multilocation = multilocation;
+          assetsData[i].unitsPerSecond = unitsPerSecond;
+          assetsData[i].code = code == '0x60006000fd' ? true : false;
         }
 
-        // Get and Check Code
-        const code = await api.rpc.eth.getCode(assetsData[i].address);
+        // Sort Results
+        let sortedAssets = _.sortBy(assetsData, 'paraID');
+        sortedAssets[0].paraID = 'Relay';
 
-        // Gather all data
-        assetsData[i].name = metadata.name.toHuman().toString();
-        assetsData[i].decimals = metadata.decimals.toHuman().toString();
-        assetsData[i].symbol = metadata.symbol.toHuman().toString();
-        assetsData[i].metadata = metadata;
-        assetsData[i].multilocation = multilocation;
-        assetsData[i].unitsPerSecond = unitsPerSecond;
-        assetsData[i].code = code == '0x60006000fd' ? true : false;
+        setExternalAssets(sortedAssets);
+      } catch (err) {
+        setErrorMessage(err.message);
       }
 
-      // Sort Results
-      let sortedAssets = _.sortBy(assetsData, 'paraID');
-      sortedAssets[0].paraID = 'Relay';
-
-      setExternalAssets(sortedAssets);
-
       setLoading(false);
-    } catch (err) {
-      setErrorMessage(err.message);
-    }
-  };
+    };
+
+    loadAllData();
+  }, [network]);
 
   const renderAssets = () => {
     const { Row, Cell } = Table;

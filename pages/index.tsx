@@ -26,7 +26,7 @@ const Networks = [
   },
 ];
 
-const MintalbeXC20Dashboard = () => {
+const MintableXC20Dashboard = () => {
   const router = useRouter();
 
   // Set the Intial State of the Network based on Default Param or Route
@@ -38,6 +38,7 @@ const MintalbeXC20Dashboard = () => {
     defaultNetwork = Networks[0].value;
   }
   const [network, setNetwork] = useState(defaultNetwork);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (router.query.network && network !== router.query.network) {
@@ -71,13 +72,14 @@ const MintalbeXC20Dashboard = () => {
               options={Networks}
               onChange={handleChange}
               value={defaultNetwork}
+              disabled={loading}
             />
           </Menu.Item>
         </Menu>
         <br />
         {network ? (
           network == 'moonbeam' || network == 'moonriver' || network == 'moonbase' ? (
-            <AssetDisplayComponent network={network} />
+            <AssetDisplayComponent network={network} loading={loading} setLoading={setLoading} />
           ) : (
             <h3>Network must be Moonbeam, Moonriver, or Moonbase</h3>
           )
@@ -94,4 +96,4 @@ const MintalbeXC20Dashboard = () => {
   );
 };
 
-export default MintalbeXC20Dashboard;
+export default MintableXC20Dashboard;
