@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Form, Container, Message, Table, Loader, Dropdown, Grid } from 'semantic-ui-react';
+import {
+  Form,
+  Container,
+  Message,
+  Table,
+  Loader,
+  Dropdown,
+  Grid,
+} from 'semantic-ui-react';
 import * as ethers from 'ethers';
 import { subProvider } from '../web3/api';
 import { bnToHex } from '@polkadot/util';
@@ -26,7 +34,9 @@ const assetInfoComponent = ({ network, loading, setLoading }) => {
         const data = await api.query.assets.asset.entries();
         data.forEach(async ([key, exposure]) => {
           assetsData.push({
-            assetID: BigInt(key.args.map((k) => k.toHuman())[0].replaceAll(',', '')),
+            assetID: BigInt(
+              key.args.map((k) => k.toHuman())[0].replaceAll(',', '')
+            ),
             assetInfo: exposure,
           });
         });
@@ -40,7 +50,9 @@ const assetInfoComponent = ({ network, loading, setLoading }) => {
           try {
             // Load External Assets asycnhronously all data
             const dataPromise = Promise.all([
-              api.query.assetManager.assetIdType(assetsData[i].assetID.toString()),
+              api.query.assetManager.assetIdType(
+                assetsData[i].assetID.toString()
+              ),
               api.query.assets.metadata(assetsData[i].assetID.toString()),
             ]);
 
@@ -56,15 +68,25 @@ const assetInfoComponent = ({ network, loading, setLoading }) => {
 
             // Get Parachain ID
             const key = Object.keys(multilocation.toHuman().Xcm['interior'])[0];
-            assetsData[i].paraID = multilocation.toHuman().Xcm['interior'][key].Parachain
-              ? Number(multilocation.toHuman().Xcm['interior'][key].Parachain.replaceAll(',', ''))
+            assetsData[i].paraID = multilocation.toHuman().Xcm['interior'][key]
+              .Parachain
+              ? Number(
+                  multilocation
+                    .toHuman()
+                    .Xcm['interior'][key].Parachain.replaceAll(',', '')
+                )
               : multilocation.toHuman().Xcm['interior'][key][0].Parachain
-              ? Number(multilocation.toHuman().Xcm['interior'][key][0].Parachain.replaceAll(',', ''))
+              ? Number(
+                  multilocation
+                    .toHuman()
+                    .Xcm['interior'][key][0].Parachain.replaceAll(',', '')
+                )
               : 0;
 
             // Calculate Address
             assetsData[i].address = ethers.utils.getAddress(
-              'ffffffff' + bnToHex(assetsData[i].assetID).slice(2).padStart(32, '0')
+              'ffffffff' +
+                bnToHex(assetsData[i].assetID).slice(2).padStart(32, '0')
             );
 
             assetsData[i].isLocal = false;
@@ -104,6 +126,7 @@ const assetInfoComponent = ({ network, loading, setLoading }) => {
     const { Row, Cell } = Table;
     if (externalAssets.length !== 0 && externalAssets[0]) {
       return externalAssets.map((asset, index) => {
+        console.log(asset.unitsPerSecond);
         return (
           <Row
             key={index}
@@ -117,6 +140,7 @@ const assetInfoComponent = ({ network, loading, setLoading }) => {
             <Cell>{asset.address}</Cell>
             <Cell>{asset.decimals}</Cell>
             <Cell>{asset.assetID.toString()}</Cell>
+            <Cell>{asset.unitsPerSecond != 'N/A' ? '✔️' : '❌'}</Cell>
             <Cell>{asset.code ? '✔️' : '❌'}</Cell>
             <Cell>{asset.paraID}</Cell>
           </Row>
@@ -167,7 +191,9 @@ const assetInfoComponent = ({ network, loading, setLoading }) => {
               </Row>
               <Row>
                 <Cell>Is Sufficient?</Cell>
-                <Cell>{focussedAsset.assetInfo.toHuman().isSufficient ? '✔️' : '❌'}</Cell>
+                <Cell>
+                  {focussedAsset.assetInfo.toHuman().isSufficient ? '✔️' : '❌'}
+                </Cell>
               </Row>
               <Row>
                 <Cell>Supply (raw)</Cell>
@@ -176,7 +202,8 @@ const assetInfoComponent = ({ network, loading, setLoading }) => {
               <Row>
                 <Cell>Supply</Cell>
                 <Cell>{`${
-                  focussedAsset.assetInfo.toHuman().supply.replaceAll(',', '') / Math.pow(10, focussedAsset.decimals)
+                  focussedAsset.assetInfo.toHuman().supply.replaceAll(',', '') /
+                  Math.pow(10, focussedAsset.decimals)
                 } ${focussedAsset.symbol}`}</Cell>
               </Row>
               <Row>
@@ -221,7 +248,9 @@ const assetInfoComponent = ({ network, loading, setLoading }) => {
         <p>
           <i>Click on the External Asset to get more Info</i>
         </p>
-        {loading === true && <Loader active inline='centered' content='Loading' />}
+        {loading === true && (
+          <Loader active inline='centered' content='Loading' />
+        )}
         {loading === false && (
           <Container>
             <div style={{ overflowX: 'auto' }}>
@@ -234,6 +263,7 @@ const assetInfoComponent = ({ network, loading, setLoading }) => {
                     <HeaderCell>XC-20 Address</HeaderCell>
                     <HeaderCell>Dec.</HeaderCell>
                     <HeaderCell>Asset ID</HeaderCell>
+                    <HeaderCell>Fee?</HeaderCell>
                     <HeaderCell>Code</HeaderCell>
                     <HeaderCell>ParaID</HeaderCell>
                   </Row>
@@ -245,7 +275,9 @@ const assetInfoComponent = ({ network, loading, setLoading }) => {
         )}
 
         <Grid>
-          <Grid.Column width={8}>{focussedAsset ? renderAsset() : ''}</Grid.Column>
+          <Grid.Column width={8}>
+            {focussedAsset ? renderAsset() : ''}
+          </Grid.Column>
         </Grid>
         <br />
         <br />
