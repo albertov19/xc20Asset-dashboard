@@ -126,7 +126,6 @@ const assetInfoComponent = ({ network, loading, setLoading }) => {
     const { Row, Cell } = Table;
     if (externalAssets.length !== 0 && externalAssets[0]) {
       return externalAssets.map((asset, index) => {
-        console.log(asset.unitsPerSecond);
         return (
           <Row
             key={index}
