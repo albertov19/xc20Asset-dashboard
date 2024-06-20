@@ -101,7 +101,7 @@ const MintableXC20Dashboard = () => {
           ''
         )}
         <p>
-          Don't judge the code :) as it is for demostration purposes only. You
+          Don't judge the code :) as it is for demonstration purposes only. You
           can check the source code &nbsp;
           <a href='https://github.com/albertov19/localAsset-dashboard'>here</a>
         </p>
