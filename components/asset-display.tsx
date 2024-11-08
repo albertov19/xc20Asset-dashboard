@@ -5,7 +5,6 @@ import {
   Message,
   Table,
   Loader,
-  Dropdown,
   Grid,
 } from 'semantic-ui-react';
 import * as ethers from 'ethers';
@@ -45,7 +44,7 @@ const assetInfoComponent = ({ network, loading, setLoading }) => {
         for (let i = 0; i < assetsData.length; i++) {
           let metadata;
           let multilocation;
-          let unitsPerSecond;
+          let relativePrice;
 
           try {
             // Load External Assets asycnhronously all data
@@ -58,30 +57,28 @@ const assetInfoComponent = ({ network, loading, setLoading }) => {
 
             [multilocation, metadata] = await dataPromise;
 
-            // Get Units Per Second
-            const rawUnitsPerSecond = (
-              await api.query.assetManager.assetTypeUnitsPerSecond({
-                Xcm: multilocation.toJSON().xcm,
-              })
-            ).toString();
-            unitsPerSecond = rawUnitsPerSecond ? rawUnitsPerSecond : 'N/A';
+            // Save multilocation as JSON
+            multilocation = multilocation.toJSON().xcm;
+
+            // Patch for X1 not being an array
+            if (multilocation.interior['x1']) {
+              multilocation.interior['x1'] = Array(
+                multilocation.interior['x1']
+              );
+            }
+            // Get Relative Prize
+            const rawRelativePrice = (
+              await api.query.xcmWeightTrader.supportedAssets(multilocation)
+            ).toHuman();
+            relativePrice = rawRelativePrice ? rawRelativePrice[1] : 'N/A';
 
             // Get Parachain ID
-            const key = Object.keys(multilocation.toHuman().Xcm['interior'])[0];
-            assetsData[i].paraID = multilocation.toHuman().Xcm['interior'][key]
-              .Parachain
-              ? Number(
-                  multilocation
-                    .toHuman()
-                    .Xcm['interior'][key].Parachain.replaceAll(',', '')
-                )
-              : multilocation.toHuman().Xcm['interior'][key][0].Parachain
-              ? Number(
-                  multilocation
-                    .toHuman()
-                    .Xcm['interior'][key][0].Parachain.replaceAll(',', '')
-                )
-              : 0;
+            const key = Object.keys(multilocation.interior)[0];
+            assetsData[i].paraID = !Array.isArray(multilocation.interior[key])
+              ? 'Relay'
+              : multilocation.interior[key][0].parachain
+              ? String(multilocation.interior[key][0].parachain)
+              : 'Eth';
 
             // Calculate Address
             assetsData[i].address = ethers.utils.getAddress(
@@ -103,13 +100,12 @@ const assetInfoComponent = ({ network, loading, setLoading }) => {
           assetsData[i].symbol = metadata.symbol.toHuman().toString();
           assetsData[i].metadata = metadata;
           assetsData[i].multilocation = multilocation;
-          assetsData[i].unitsPerSecond = unitsPerSecond;
+          assetsData[i].relativePrice = relativePrice;
           assetsData[i].code = code == '0x60006000fd' ? true : false;
         }
 
         // Sort Results
         let sortedAssets = _.sortBy(assetsData, 'paraID');
-        sortedAssets[0].paraID = 'Relay';
 
         setExternalAssets(sortedAssets);
       } catch (err) {
@@ -139,7 +135,7 @@ const assetInfoComponent = ({ network, loading, setLoading }) => {
             <Cell>{asset.address}</Cell>
             <Cell>{asset.decimals}</Cell>
             <Cell>{asset.assetID.toString()}</Cell>
-            <Cell>{asset.unitsPerSecond != 'N/A' ? '✔️' : '❌'}</Cell>
+            <Cell>{asset.relativePrice != 'N/A' ? '✔️' : '❌'}</Cell>
             <Cell>{asset.code ? '✔️' : '❌'}</Cell>
             <Cell>{asset.paraID}</Cell>
           </Row>
@@ -206,8 +202,8 @@ const assetInfoComponent = ({ network, loading, setLoading }) => {
                 } ${focussedAsset.symbol}`}</Cell>
               </Row>
               <Row>
-                <Cell>UnitsPerSecond</Cell>
-                <Cell>{`${focussedAsset.unitsPerSecond}`}</Cell>
+                <Cell>Relative Price</Cell>
+                <Cell>{`${focussedAsset.relativePrice}`}</Cell>
               </Row>
               <Row>
                 <Cell>Accounts</Cell>
