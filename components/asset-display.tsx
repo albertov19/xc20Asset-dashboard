@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   Form,
   Container,
@@ -6,35 +6,36 @@ import {
   Table,
   Loader,
   Grid,
-} from 'semantic-ui-react';
-import * as ethers from 'ethers';
-import { subProvider } from '../web3/api';
-import { bnToHex } from '@polkadot/util';
-import _ from 'underscore';
+} from "semantic-ui-react";
+import * as ethers from "ethers";
+import { subProvider } from "../web3/api";
+import { bnToHex } from "@polkadot/util";
+import ERC20ABI from "../web3/ERC20ABI.json";
+import _ from "underscore";
 
 const assetInfoComponent = ({ network, loading, setLoading }) => {
   const [externalAssets, setExternalAssets] = useState(Array());
   const [focussedAsset, setFocussedAsset] = useState<any>(null);
-  const [errorMessage, setErrorMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
     const loadAllData = async () => {
       setFocussedAsset(null);
       setLoading(true);
-      setErrorMessage('');
+      setErrorMessage("");
 
       try {
         let assetsData = Array();
 
-        // Load Provider
-        const api = await subProvider(network);
+        // Load Polkadot and Ethereum API Provider
+        const [api, ethApi] = await subProvider(network);
 
         // Get all assets
-        const data = await api.query.assets.asset.entries();
+        const data = await api.query.evmForeignAssets.assetsById.entries();
         data.forEach(async ([key, exposure]) => {
           assetsData.push({
             assetID: BigInt(
-              key.args.map((k) => k.toHuman())[0].replaceAll(',', '')
+              key.args.map((k) => k.toHuman())[0].replaceAll(",", "")
             ),
             assetInfo: exposure,
           });
@@ -42,70 +43,64 @@ const assetInfoComponent = ({ network, loading, setLoading }) => {
 
         // Go through each asset
         for (let i = 0; i < assetsData.length; i++) {
-          let metadata;
-          let multilocation;
+          let multilocation = assetsData[i].assetInfo.toJSON();
           let relativePrice;
+          let name, symbol, decimals, totalSupply;
+
+          // Get Asset ERC-20 Address
+          const assetAddress = ethers.getAddress(
+            (
+              "0x" + assetsData[i].assetID.toString(16).padStart(40, "F")
+            ).toLowerCase()
+          );
 
           try {
-            // Load External Assets asycnhronously all data
-            const dataPromise = Promise.all([
-              api.query.assetManager.assetIdType(
-                assetsData[i].assetID.toString()
-              ),
-              api.query.assets.metadata(assetsData[i].assetID.toString()),
+            // Load Asset Details via ERC-20 ABI
+            const contract = new ethers.Contract(
+              assetAddress,
+              ERC20ABI,
+              ethApi
+            );
+
+            // Batch RPC to ERC-20 Contract
+            [name, symbol, decimals, totalSupply] = await Promise.all([
+              contract.name(),
+              contract.symbol(),
+              contract.decimals(),
+              contract.totalSupply(),
             ]);
 
-            [multilocation, metadata] = await dataPromise;
 
-            // Save multilocation as JSON
-            multilocation = multilocation.toJSON().xcm;
-
-            // Patch for X1 not being an array
-            if (multilocation.interior['x1']) {
-              multilocation.interior['x1'] = Array(
-                multilocation.interior['x1']
-              );
-            }
             // Get Relative Prize
             const rawRelativePrice = (
               await api.query.xcmWeightTrader.supportedAssets(multilocation)
             ).toHuman();
-            relativePrice = rawRelativePrice ? rawRelativePrice[1] : 'N/A';
+            relativePrice = rawRelativePrice ? rawRelativePrice[1] : "N/A";
+
+            console.log(assetsData[i].assetID.toString(), relativePrice);
 
             // Get Parachain ID
             const key = Object.keys(multilocation.interior)[0];
             assetsData[i].paraID = !Array.isArray(multilocation.interior[key])
-              ? 'Relay'
+              ? "Relay"
               : multilocation.interior[key][0].parachain
               ? String(multilocation.interior[key][0].parachain)
-              : 'Eth';
-
-            // Calculate Address
-            assetsData[i].address = ethers.utils.getAddress(
-              'ffffffff' +
-                bnToHex(assetsData[i].assetID).slice(2).padStart(32, '0')
-            );
-
-            assetsData[i].isLocal = false;
+              : "Eth";
           } catch (err) {
             console.log(err.message);
           }
 
-          // Get and Check Code
-          const code = await api.rpc.eth.getCode(assetsData[i].address);
-
           // Gather all data
-          assetsData[i].name = metadata.name.toHuman().toString();
-          assetsData[i].decimals = metadata.decimals.toHuman().toString();
-          assetsData[i].symbol = metadata.symbol.toHuman().toString();
-          assetsData[i].metadata = metadata;
+          assetsData[i].address = assetAddress;
+          assetsData[i].name = name;
+          assetsData[i].decimals = decimals.toString();
+          assetsData[i].symbol = symbol.toString();
           assetsData[i].multilocation = multilocation;
           assetsData[i].relativePrice = relativePrice;
-          assetsData[i].code = code == '0x60006000fd' ? true : false;
         }
 
         // Sort Results
-        let sortedAssets = _.sortBy(assetsData, 'paraID');
+        let sortedAssets = _.sortBy(assetsData, "paraID");
 
         setExternalAssets(sortedAssets);
       } catch (err) {
@@ -135,8 +130,7 @@ const assetInfoComponent = ({ network, loading, setLoading }) => {
             <Cell>{asset.address}</Cell>
             <Cell>{asset.decimals}</Cell>
             <Cell>{asset.assetID.toString()}</Cell>
-            <Cell>{asset.relativePrice != 'N/A' ? '✔️' : '❌'}</Cell>
-            <Cell>{asset.code ? '✔️' : '❌'}</Cell>
+            <Cell>{asset.relativePrice != "N/A" ? "✔️" : "❌"}</Cell>
             <Cell>{asset.paraID}</Cell>
           </Row>
         );
@@ -153,16 +147,16 @@ const assetInfoComponent = ({ network, loading, setLoading }) => {
           <br />
           <hr />
           <h3> External Asset Info</h3>
-          <Table definition singleLine color='teal' size='small'>
+          <Table definition singleLine color="teal" size="small">
             <Body>
               <Row>
                 <Cell>Multilocation</Cell>
                 <Cell
                   style={{
                     maxWidth: 8,
-                    wordWrap: 'break-word',
-                    whiteSpace: 'normal',
-                    overflowWrap: 'anywhere',
+                    wordWrap: "break-word",
+                    whiteSpace: "normal",
+                    overflowWrap: "anywhere",
                   }}
                 >
                   {JSON.stringify(focussedAsset.multilocation)}
@@ -187,7 +181,7 @@ const assetInfoComponent = ({ network, loading, setLoading }) => {
               <Row>
                 <Cell>Is Sufficient?</Cell>
                 <Cell>
-                  {focussedAsset.assetInfo.toHuman().isSufficient ? '✔️' : '❌'}
+                  {focussedAsset.assetInfo.toHuman().isSufficient ? "✔️" : "❌"}
                 </Cell>
               </Row>
               <Row>
@@ -197,7 +191,7 @@ const assetInfoComponent = ({ network, loading, setLoading }) => {
               <Row>
                 <Cell>Supply</Cell>
                 <Cell>{`${
-                  focussedAsset.assetInfo.toHuman().supply.replaceAll(',', '') /
+                  focussedAsset.assetInfo.toHuman().supply.replaceAll(",", "") /
                   Math.pow(10, focussedAsset.decimals)
                 } ${focussedAsset.symbol}`}</Cell>
               </Row>
@@ -244,12 +238,12 @@ const assetInfoComponent = ({ network, loading, setLoading }) => {
           <i>Click on the External Asset to get more Info</i>
         </p>
         {loading === true && (
-          <Loader active inline='centered' content='Loading' />
+          <Loader active inline="centered" content="Loading" />
         )}
         {loading === false && (
           <Container>
-            <div style={{ overflowX: 'auto' }}>
-              <Table size='small' singleLine selectable color='teal'>
+            <div style={{ overflowX: "auto" }}>
+              <Table size="small" singleLine selectable color="teal">
                 <Header>
                   <Row>
                     <HeaderCell>#</HeaderCell>
@@ -259,7 +253,6 @@ const assetInfoComponent = ({ network, loading, setLoading }) => {
                     <HeaderCell>Dec.</HeaderCell>
                     <HeaderCell>Asset ID</HeaderCell>
                     <HeaderCell>Fee?</HeaderCell>
-                    <HeaderCell>Code</HeaderCell>
                     <HeaderCell>ParaID</HeaderCell>
                   </Row>
                 </Header>
@@ -271,12 +264,12 @@ const assetInfoComponent = ({ network, loading, setLoading }) => {
 
         <Grid>
           <Grid.Column width={8}>
-            {focussedAsset ? renderAsset() : ''}
+            {focussedAsset ? renderAsset() : ""}
           </Grid.Column>
         </Grid>
         <br />
         <br />
-        <Message error header='Oops!' content={errorMessage} />
+        <Message error header="Oops!" content={errorMessage} />
       </Form>
     </div>
   );
