@@ -9,7 +9,6 @@ import {
 } from "semantic-ui-react";
 import * as ethers from "ethers";
 import { subProvider } from "../web3/api";
-import { bnToHex } from "@polkadot/util";
 import ERC20ABI from "../web3/ERC20ABI.json";
 import _ from "underscore";
 
@@ -45,7 +44,7 @@ const assetInfoComponent = ({ network, loading, setLoading }) => {
         for (let i = 0; i < assetsData.length; i++) {
           let multilocation = assetsData[i].assetInfo.toJSON();
           let relativePrice;
-          let name, symbol, decimals, totalSupply;
+          let name, symbol, decimals, totalSupply, owner;
 
           // Get Asset ERC-20 Address
           const assetAddress = ethers.getAddress(
@@ -63,21 +62,19 @@ const assetInfoComponent = ({ network, loading, setLoading }) => {
             );
 
             // Batch RPC to ERC-20 Contract
-            [name, symbol, decimals, totalSupply] = await Promise.all([
+            [name, symbol, decimals, totalSupply, owner] = await Promise.all([
               contract.name(),
               contract.symbol(),
               contract.decimals(),
               contract.totalSupply(),
+              contract.owner()
             ]);
-
 
             // Get Relative Prize
             const rawRelativePrice = (
               await api.query.xcmWeightTrader.supportedAssets(multilocation)
             ).toHuman();
             relativePrice = rawRelativePrice ? rawRelativePrice[1] : "N/A";
-
-            console.log(assetsData[i].assetID.toString(), relativePrice);
 
             // Get Parachain ID
             const key = Object.keys(multilocation.interior)[0];
