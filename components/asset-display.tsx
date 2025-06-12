@@ -5,11 +5,9 @@ import {
   Message,
   Table,
   Loader,
-  Grid,
   Modal,
   Button,
   Icon,
-  Popup,
 } from "semantic-ui-react";
 import * as ethers from "ethers";
 import { subProvider } from "../web3/api";
@@ -21,6 +19,15 @@ const assetInfoComponent = ({ network, loading, setLoading }) => {
   const [focussedAsset, setFocussedAsset] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+
+  const handleCopy = async (e, text) => {
+    e.stopPropagation(); // prevent opening the modal
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (err) {
+      console.error("Failed to copy text: ", err);
+    }
+  };
 
   useEffect(() => {
     const loadAllData = async () => {
@@ -49,9 +56,8 @@ const assetInfoComponent = ({ network, loading, setLoading }) => {
           let name, symbol, decimals, totalSupply, owner;
 
           const assetAddress = ethers.getAddress(
-            (
-              "0x" + assetsData[i].assetID.toString(16).padStart(40, "F")
-            ).toLowerCase()
+            ("0x" +
+              assetsData[i].assetID.toString(16).padStart(32, "0").padStart(40, "F")).toLowerCase()
           );
 
           try {
@@ -78,8 +84,8 @@ const assetInfoComponent = ({ network, loading, setLoading }) => {
             assetsData[i].paraID = !Array.isArray(multilocation.interior[key])
               ? "Relay"
               : multilocation.interior[key][0].parachain
-              ? String(multilocation.interior[key][0].parachain)
-              : "Eth";
+                ? String(multilocation.interior[key][0].parachain)
+                : "Eth";
           } catch (err) {
             console.log("Error fetching contract data:", err.message);
           }
@@ -106,64 +112,65 @@ const assetInfoComponent = ({ network, loading, setLoading }) => {
     loadAllData();
   }, [network]);
 
-  const copyToClipboard = (e, value) => {
-    e.stopPropagation();
-    navigator.clipboard.writeText(value);
-  };
-
   const renderAssets = () => {
     const { Row, Cell } = Table;
-    return externalAssets
-      .filter((asset) => asset.symbol && asset.symbol.trim() !== "")
-      .map((asset, index) => (
-        <Row
-          key={index}
-          onClick={() => {
-            setFocussedAsset(asset);
-            setModalOpen(true);
-          }}
-          style={{ cursor: "pointer" }}
-        >
-          <Cell>{index + 1}</Cell>
-          <Cell>{asset.name}</Cell>
-          <Cell>{asset.symbol}</Cell>
-          <Cell>
-            <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 6 }}>
-              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100%" }}>
-                {asset.address}
-              </span>
-              <Popup
-                content="Copy Address"
-                trigger={
-                  <Icon
-                    name="copy"
-                    link
-                    onClick={(e) => copyToClipboard(e, asset.address)}
-                  />
-                }
-              />
-            </div>
-          </Cell>
-          <Cell>{asset.decimals}</Cell>
-          <Cell>
-            <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 6 }}>
-              <span>{asset.assetID.toString()}</span>
-              <Popup
-                content="Copy Asset ID"
-                trigger={
-                  <Icon
-                    name="copy"
-                    link
-                    onClick={(e) => copyToClipboard(e, asset.assetID.toString())}
-                  />
-                }
-              />
-            </div>
-          </Cell>
-          <Cell>{asset.relativePrice !== "N/A" ? "✔️" : "❌"}</Cell>
-          <Cell>{asset.paraID}</Cell>
-        </Row>
-      ));
+    return externalAssets.map((asset, index) => (
+      <Row
+        key={index}
+        onClick={() => {
+          setFocussedAsset(asset);
+          setModalOpen(true);
+        }}
+        style={{ cursor: "pointer" }}
+      >
+        <Cell>{index + 1}</Cell>
+        <Cell>{asset.name}</Cell>
+        <Cell>{asset.symbol}</Cell>
+
+        <Cell>
+          <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "0.5em" }}>
+            <span>{asset.address}</span>
+            <Button
+              icon
+              size="mini"
+              onClick={(e) => handleCopy(e, asset.address)}
+              style={{
+                boxShadow: "none",
+                border: "none",
+                background: "none",
+                padding: 0,
+              }}
+            >
+              <Icon name="copy" />
+            </Button>
+          </div>
+        </Cell>
+
+        <Cell>{asset.decimals}</Cell>
+
+        <Cell>
+          <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "0.5em" }}>
+            <span>{asset.assetID.toString()}</span>
+            <Button
+              icon
+              size="mini"
+              onClick={(e) => handleCopy(e, asset.assetID.toString())}
+              style={{
+                boxShadow: "none",
+                border: "none",
+                background: "none",
+                padding: 0,
+              }}
+            >
+              <Icon name="copy" />
+            </Button>
+          </div>
+        </Cell>
+
+        <Cell>{asset.relativePrice !== "N/A" ? "✔️" : "❌"}</Cell>
+        <Cell>{asset.paraID}</Cell>
+      </Row>
+    ));
   };
 
   const renderAssetModal = () => {
@@ -177,9 +184,8 @@ const assetInfoComponent = ({ network, loading, setLoading }) => {
     const displaySupply =
       cleanedSupply && !isNaN(cleanedSupply)
         ? `${parseFloat(cleanedSupply) /
-            Math.pow(10, parseInt(focussedAsset.decimals || "0"))} ${
-            focussedAsset.symbol
-          }`
+        Math.pow(10, parseInt(focussedAsset.decimals || "0"))} ${focussedAsset.symbol
+        }`
         : "N/A";
 
     let formattedRelativePrice = "N/A";
