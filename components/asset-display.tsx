@@ -5,10 +5,9 @@ import {
   Message,
   Table,
   Loader,
-  Grid,
   Modal,
-  Button,
   Icon,
+  Popup,
 } from "semantic-ui-react";
 import * as ethers from "ethers";
 import { subProvider } from "../web3/api";
@@ -105,27 +104,64 @@ const assetInfoComponent = ({ network, loading, setLoading }) => {
     loadAllData();
   }, [network]);
 
+  const copyToClipboard = (e, value) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(value);
+  };
+
   const renderAssets = () => {
     const { Row, Cell } = Table;
-    return externalAssets.map((asset, index) => (
-      <Row
-        key={index}
-        onClick={() => {
-          setFocussedAsset(asset);
-          setModalOpen(true);
-        }}
-        style={{ cursor: "pointer" }}
-      >
-        <Cell>{index + 1}</Cell>
-        <Cell>{asset.name}</Cell>
-        <Cell>{asset.symbol}</Cell>
-        <Cell>{asset.address}</Cell>
-        <Cell>{asset.decimals}</Cell>
-        <Cell>{asset.assetID.toString()}</Cell>
-        <Cell>{asset.relativePrice !== "N/A" ? "✔️" : "❌"}</Cell>
-        <Cell>{asset.paraID}</Cell>
-      </Row>
-    ));
+    return externalAssets
+      .filter((asset) => asset.symbol && asset.symbol.trim() !== "")
+      .map((asset, index) => (
+        <Row
+          key={index}
+          onClick={() => {
+            setFocussedAsset(asset);
+            setModalOpen(true);
+          }}
+          style={{ cursor: "pointer" }}
+        >
+          <Cell>{index + 1}</Cell>
+          <Cell>{asset.name}</Cell>
+          <Cell>{asset.symbol}</Cell>
+          <Cell>
+            <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 6 }}>
+              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100%" }}>
+                {asset.address}
+              </span>
+              <Popup
+                content="Copy Address"
+                trigger={
+                  <Icon
+                    name="copy"
+                    link
+                    onClick={(e) => copyToClipboard(e, asset.address)}
+                  />
+                }
+              />
+            </div>
+          </Cell>
+          <Cell>{asset.decimals}</Cell>
+          <Cell>
+            <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 6 }}>
+              <span>{asset.assetID.toString()}</span>
+              <Popup
+                content="Copy Asset ID"
+                trigger={
+                  <Icon
+                    name="copy"
+                    link
+                    onClick={(e) => copyToClipboard(e, asset.assetID.toString())}
+                  />
+                }
+              />
+            </div>
+          </Cell>
+          <Cell>{asset.relativePrice !== "N/A" ? "✔️" : "❌"}</Cell>
+          <Cell>{asset.paraID}</Cell>
+        </Row>
+      ));
   };
 
   const renderAssetModal = () => {
@@ -178,7 +214,6 @@ const assetInfoComponent = ({ network, loading, setLoading }) => {
           </Table>
         </Modal.Content>
       </Modal>
-
     );
   };
 
