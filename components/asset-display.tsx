@@ -267,3 +267,4 @@ const assetInfoComponent = ({ network, loading, setLoading }) => {
 };
 
 export default assetInfoComponent;
+
