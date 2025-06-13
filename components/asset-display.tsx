@@ -84,8 +84,8 @@ const assetInfoComponent = ({ network, loading, setLoading }) => {
             assetsData[i].paraID = !Array.isArray(multilocation.interior[key])
               ? "Relay"
               : multilocation.interior[key][0].parachain
-                ? String(multilocation.interior[key][0].parachain)
-                : "Eth";
+              ? String(multilocation.interior[key][0].parachain)
+              : "Eth";
           } catch (err) {
             console.log("Error fetching contract data:", err.message);
           }
@@ -166,7 +166,6 @@ const assetInfoComponent = ({ network, loading, setLoading }) => {
             </Button>
           </div>
         </Cell>
-
         <Cell>{asset.relativePrice !== "N/A" ? "✔️" : "❌"}</Cell>
         <Cell>{asset.paraID}</Cell>
       </Row>
@@ -184,6 +183,7 @@ const assetInfoComponent = ({ network, loading, setLoading }) => {
     const displaySupply =
       cleanedSupply && !isNaN(cleanedSupply)
         ? `${parseFloat(cleanedSupply) /
+
         Math.pow(10, parseInt(focussedAsset.decimals || "0"))} ${focussedAsset.symbol
         }`
         : "N/A";
@@ -198,7 +198,6 @@ const assetInfoComponent = ({ network, loading, setLoading }) => {
     } else if (typeof focussedAsset.relativePrice === "object") {
       formattedRelativePrice = JSON.stringify(focussedAsset.relativePrice).replaceAll(",", "");
     }
-
     return (
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} closeIcon>
         <Modal.Header>External Asset Info</Modal.Header>
