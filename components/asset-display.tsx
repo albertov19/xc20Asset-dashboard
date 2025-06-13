@@ -19,11 +19,14 @@ const assetInfoComponent = ({ network, loading, setLoading }) => {
   const [focussedAsset, setFocussedAsset] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [copiedField, setCopiedField] = useState(null);
 
-  const handleCopy = async (e, text) => {
-    e.stopPropagation(); // prevent opening the modal
+  const handleCopy = async (e, text, key) => {
+    e.stopPropagation();
     try {
       await navigator.clipboard.writeText(text);
+      setCopiedField(key);
+      setTimeout(() => setCopiedField(null), 2000);
     } catch (err) {
       console.error("Failed to copy text: ", err);
     }
@@ -114,63 +117,66 @@ const assetInfoComponent = ({ network, loading, setLoading }) => {
 
   const renderAssets = () => {
     const { Row, Cell } = Table;
-    return externalAssets.map((asset, index) => (
-      <Row
-        key={index}
-        onClick={() => {
-          setFocussedAsset(asset);
-          setModalOpen(true);
-        }}
-        style={{ cursor: "pointer" }}
-      >
-        <Cell>{index + 1}</Cell>
-        <Cell>{asset.name}</Cell>
-        <Cell>{asset.symbol}</Cell>
+    return externalAssets.map((asset, index) => {
+      const assetIDStr = asset.assetID.toString();
+      return (
+        <Row
+          key={index}
+          onClick={() => {
+            setFocussedAsset(asset);
+            setModalOpen(true);
+          }}
+          style={{ cursor: "pointer" }}
+        >
+          <Cell>{index + 1}</Cell>
+          <Cell>{asset.name}</Cell>
+          <Cell>{asset.symbol}</Cell>
 
-        <Cell>
-          <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "0.5em" }}>
-            <span>{asset.address}</span>
-            <Button
-              icon
-              size="mini"
-              onClick={(e) => handleCopy(e, asset.address)}
-              style={{
-                boxShadow: "none",
-                border: "none",
-                background: "none",
-                padding: 0,
-              }}
-            >
-              <Icon name="copy" />
-            </Button>
-          </div>
-        </Cell>
+          <Cell>
+            <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "0.5em" }}>
+              <span>{asset.address}</span>
+              <Button
+                icon
+                size="mini"
+                onClick={(e) => handleCopy(e, asset.address, `address-${index}`)}
+                style={{
+                  boxShadow: "none",
+                  border: "none",
+                  background: "none",
+                  padding: 0,
+                }}
+              >
+                <Icon name={copiedField === `address-${index}` ? "check" : "copy"} color={copiedField === `address-${index}` ? "green" : null} />
+              </Button>
+            </div>
+          </Cell>
 
-        <Cell>{asset.decimals}</Cell>
+          <Cell>{asset.decimals}</Cell>
 
-        <Cell>
-          <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "0.5em" }}>
-            <span>{asset.assetID.toString()}</span>
-            <Button
-              icon
-              size="mini"
-              onClick={(e) => handleCopy(e, asset.assetID.toString())}
-              style={{
-                boxShadow: "none",
-                border: "none",
-                background: "none",
-                padding: 0,
-              }}
-            >
-              <Icon name="copy" />
-            </Button>
-          </div>
-        </Cell>
+          <Cell>
+            <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "0.5em" }}>
+              <span>{assetIDStr}</span>
+              <Button
+                icon
+                size="mini"
+                onClick={(e) => handleCopy(e, assetIDStr, `id-${index}`)}
+                style={{
+                  boxShadow: "none",
+                  border: "none",
+                  background: "none",
+                  padding: 0,
+                }}
+              >
+                <Icon name={copiedField === `id-${index}` ? "check" : "copy"} color={copiedField === `id-${index}` ? "green" : null} />
+              </Button>
+            </div>
+          </Cell>
 
-        <Cell>{asset.relativePrice !== "N/A" ? "✔️" : "❌"}</Cell>
-        <Cell>{asset.paraID}</Cell>
-      </Row>
-    ));
+          <Cell>{asset.relativePrice !== "N/A" ? "✔️" : "❌"}</Cell>
+          <Cell>{asset.paraID}</Cell>
+        </Row>
+      );
+    });
   };
 
   const renderAssetModal = () => {
@@ -178,14 +184,11 @@ const assetInfoComponent = ({ network, loading, setLoading }) => {
     const humanInfo = focussedAsset.assetInfo?.toHuman?.() ?? {};
     const supplyRaw =
       focussedAsset.totalSupply?.toString?.() ??
-      humanInfo.supply ??
-      "N/A";
+      humanInfo.supply ?? "N/A";
     const cleanedSupply = supplyRaw.replaceAll?.(",", "") ?? "";
     const displaySupply =
       cleanedSupply && !isNaN(cleanedSupply)
-        ? `${parseFloat(cleanedSupply) /
-        Math.pow(10, parseInt(focussedAsset.decimals || "0"))} ${focussedAsset.symbol
-        }`
+        ? `${parseFloat(cleanedSupply) / Math.pow(10, parseInt(focussedAsset.decimals || "0"))} ${focussedAsset.symbol}`
         : "N/A";
 
     let formattedRelativePrice = "N/A";
