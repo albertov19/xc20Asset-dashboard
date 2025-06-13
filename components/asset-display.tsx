@@ -5,7 +5,6 @@ import {
   Message,
   Table,
   Loader,
-  Grid,
   Modal,
   Button,
   Icon,
@@ -20,6 +19,15 @@ const assetInfoComponent = ({ network, loading, setLoading }) => {
   const [focussedAsset, setFocussedAsset] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+
+  const handleCopy = async (e, text) => {
+    e.stopPropagation(); // prevent opening the modal
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (err) {
+      console.error("Failed to copy text: ", err);
+    }
+  };
 
   useEffect(() => {
     const loadAllData = async () => {
@@ -48,9 +56,8 @@ const assetInfoComponent = ({ network, loading, setLoading }) => {
           let name, symbol, decimals, totalSupply, owner;
 
           const assetAddress = ethers.getAddress(
-            (
-              "0x" + assetsData[i].assetID.toString(16).padStart(40, "F")
-            ).toLowerCase()
+            ("0x" +
+              assetsData[i].assetID.toString(16).padStart(32, "0").padStart(40, "F")).toLowerCase()
           );
 
           try {
@@ -119,9 +126,46 @@ const assetInfoComponent = ({ network, loading, setLoading }) => {
         <Cell>{index + 1}</Cell>
         <Cell>{asset.name}</Cell>
         <Cell>{asset.symbol}</Cell>
-        <Cell>{asset.address}</Cell>
+
+        <Cell>
+          <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "0.5em" }}>
+            <span>{asset.address}</span>
+            <Button
+              icon
+              size="mini"
+              onClick={(e) => handleCopy(e, asset.address)}
+              style={{
+                boxShadow: "none",
+                border: "none",
+                background: "none",
+                padding: 0,
+              }}
+            >
+              <Icon name="copy" />
+            </Button>
+          </div>
+        </Cell>
+
         <Cell>{asset.decimals}</Cell>
-        <Cell>{asset.assetID.toString()}</Cell>
+
+        <Cell>
+          <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "0.5em" }}>
+            <span>{asset.assetID.toString()}</span>
+            <Button
+              icon
+              size="mini"
+              onClick={(e) => handleCopy(e, asset.assetID.toString())}
+              style={{
+                boxShadow: "none",
+                border: "none",
+                background: "none",
+                padding: 0,
+              }}
+            >
+              <Icon name="copy" />
+            </Button>
+          </div>
+        </Cell>
         <Cell>{asset.relativePrice !== "N/A" ? "✔️" : "❌"}</Cell>
         <Cell>{asset.paraID}</Cell>
       </Row>
@@ -139,9 +183,9 @@ const assetInfoComponent = ({ network, loading, setLoading }) => {
     const displaySupply =
       cleanedSupply && !isNaN(cleanedSupply)
         ? `${parseFloat(cleanedSupply) /
-            Math.pow(10, parseInt(focussedAsset.decimals || "0"))} ${
-            focussedAsset.symbol
-          }`
+
+        Math.pow(10, parseInt(focussedAsset.decimals || "0"))} ${focussedAsset.symbol
+        }`
         : "N/A";
 
     let formattedRelativePrice = "N/A";
@@ -154,7 +198,6 @@ const assetInfoComponent = ({ network, loading, setLoading }) => {
     } else if (typeof focussedAsset.relativePrice === "object") {
       formattedRelativePrice = JSON.stringify(focussedAsset.relativePrice).replaceAll(",", "");
     }
-
     return (
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} closeIcon>
         <Modal.Header>External Asset Info</Modal.Header>
@@ -178,7 +221,6 @@ const assetInfoComponent = ({ network, loading, setLoading }) => {
           </Table>
         </Modal.Content>
       </Modal>
-
     );
   };
 
